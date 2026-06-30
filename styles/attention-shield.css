@@ -1,0 +1,390 @@
+/* Attention Shield — text-only YouTube feed */
+
+html.attention-shield-active ytd-reel-shelf-renderer,
+html.attention-shield-active ytd-rich-shelf-renderer[is-shorts],
+html.attention-shield-active ytd-rich-shelf-renderer[is-shorts=""],
+html.attention-shield-active
+  ytd-rich-shelf-renderer:has(ytd-badge-supported-renderer#featured-badge) {
+  display: none !important;
+}
+
+/* YouTube feedback / survey cards */
+html.attention-shield-active ytd-inline-survey-renderer,
+html.attention-shield-active ytd-single-option-survey-renderer,
+html.attention-shield-active ytd-feedback-survey-renderer,
+html.attention-shield-active ytd-survey-follow-up-renderer,
+html.attention-shield-active ytd-multi-stage-survey-renderer,
+html.attention-shield-active ytd-rating-survey-renderer,
+html.attention-shield-active yt-survey-answer-card-renderer,
+html.attention-shield-active ytd-rich-section-renderer:has(ytd-inline-survey-renderer),
+html.attention-shield-active ytd-rich-item-renderer:has(ytd-inline-survey-renderer),
+html.attention-shield-active ytd-rich-item-renderer:has(#attached-survey) {
+  display: none !important;
+}
+
+/* Explore more topics / chips shelves */
+html.attention-shield-active
+  ytd-rich-section-renderer[data-attention-shield-hide],
+html.attention-shield-active
+  ytd-rich-item-renderer[data-attention-shield-hide],
+html.attention-shield-active
+  ytd-rich-grid-renderer
+  #contents
+  > ytd-rich-section-renderer:has(.ytChipsShelfViewModelHost),
+html.attention-shield-active
+  ytd-rich-grid-renderer
+  #contents
+  > ytd-rich-item-renderer:has(.ytChipsShelfViewModelHost) {
+  display: none !important;
+}
+
+/* 3-column card grid */
+html.attention-shield-active ytd-rich-grid-renderer #contents {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 16px !important;
+  padding: 8px 16px 24px !important;
+}
+
+html.attention-shield-active ytd-search #container {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 16px !important;
+  padding: 8px 16px 24px !important;
+}
+
+html.attention-shield-active ytd-rich-item-renderer,
+html.attention-shield-active ytd-video-renderer {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+html.attention-shield-active ytd-rich-item-renderer[data-attention-shield],
+html.attention-shield-active ytd-video-renderer[data-attention-shield] {
+  display: block !important;
+  height: 100% !important;
+}
+
+/* Hide original YouTube chrome */
+html.attention-shield-active ytd-rich-item-renderer[data-attention-shield] > :not(.as-card),
+html.attention-shield-active ytd-video-renderer[data-attention-shield] > :not(.as-card),
+html.attention-shield-active ytd-rich-item-renderer[data-attention-shield] #content[hidden],
+html.attention-shield-active ytd-video-renderer[data-attention-shield] #dismissible[hidden] {
+  display: none !important;
+}
+
+/* Prevent thumbnail flash before lazy-loaded cards are transformed */
+html.attention-shield-active #ghost-cards {
+  display: none !important;
+}
+
+html.attention-shield-active
+  ytd-rich-grid-renderer
+  #contents
+  > ytd-rich-item-renderer:not([data-attention-shield-hide]):not(:has(.as-card))
+  ytd-thumbnail,
+html.attention-shield-active
+  ytd-rich-grid-renderer
+  #contents
+  > ytd-rich-item-renderer:not([data-attention-shield-hide]):not(:has(.as-card))
+  .yt-lockup-view-model__content-image,
+html.attention-shield-active
+  ytd-rich-grid-renderer
+  #contents
+  > ytd-rich-item-renderer:not([data-attention-shield-hide]):not(:has(.as-card))
+  .yt-lockup-view-model-wiz__content-image,
+html.attention-shield-active
+  ytd-search
+  ytd-video-renderer:not(:has(.as-card))
+  ytd-thumbnail,
+html.attention-shield-active
+  ytd-search
+  ytd-video-renderer:not(:has(.as-card))
+  .yt-lockup-view-model__content-image {
+  display: none !important;
+}
+
+html.attention-shield-active
+  ytd-rich-grid-renderer
+  #contents
+  > ytd-rich-item-renderer[data-attention-shield-pending]:not(:has(.as-card)),
+html.attention-shield-active
+  ytd-rich-grid-renderer
+  #contents
+  > ytd-rich-item-renderer:has(a[href*="/watch?v="]):not([data-attention-shield-hide]):not(
+    :has(.as-card)
+  ),
+html.attention-shield-active
+  ytd-search
+  ytd-video-renderer:has(a[href*="/watch?v="]):not(:has(.as-card)) {
+  min-height: 160px;
+  border-radius: 12px;
+  border: 1px solid var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.1));
+  background: var(--yt-spec-base-background, #0f0f0f);
+  box-sizing: border-box;
+}
+
+html.attention-shield-active
+  ytd-rich-grid-renderer
+  #contents
+  > ytd-rich-item-renderer:has(a[href*="/watch?v="]):not([data-attention-shield-hide]):not(
+    :has(.as-card)
+  )
+  > #content,
+html.attention-shield-active
+  ytd-search
+  ytd-video-renderer:has(a[href*="/watch?v="]):not(:has(.as-card))
+  > #dismissible {
+  visibility: hidden !important;
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Card container */
+html.attention-shield-active .as-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100%;
+  min-height: 160px;
+  padding: 18px 18px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.1));
+  background: var(--yt-spec-base-background, #0f0f0f);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+html.attention-shield-active .as-card:hover {
+  border-color: var(--yt-spec-call-to-action, #3ea6ff);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  transform: translateY(-1px);
+}
+
+/* Title */
+html.attention-shield-active .as-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+  flex: 1;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--yt-spec-text-primary, #f1f1f1);
+  text-decoration: none;
+}
+
+html.attention-shield-active .as-title:hover {
+  color: var(--yt-spec-call-to-action, #3ea6ff);
+}
+
+/* View count — primary relevance signal */
+html.attention-shield-active .as-views-prominent {
+  flex-shrink: 0;
+  margin-top: auto;
+  padding-top: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  color: var(--yt-spec-call-to-action, #3ea6ff);
+}
+
+/* Footer: avatar + channel info */
+html.attention-shield-active .as-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 4px;
+  border-top: 1px solid var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.08));
+}
+
+html.attention-shield-active .as-avatar {
+  flex-shrink: 0;
+  display: block;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+html.attention-shield-active .as-avatar img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+html.attention-shield-active .as-avatar.as-avatar-stack {
+  width: auto;
+  min-width: 32px;
+  overflow: visible;
+}
+
+html.attention-shield-active .as-avatar-stack-inner {
+  display: inline-flex;
+  align-items: center;
+}
+
+html.attention-shield-active .as-avatar-stack-inner img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--yt-spec-base-background, #0f0f0f);
+  margin-left: -8px;
+  box-sizing: border-box;
+}
+
+html.attention-shield-active .as-avatar-stack-inner img:first-child {
+  margin-left: 0;
+}
+
+html.attention-shield-active .as-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--yt-spec-brand-background-solid, #3ea6ff);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+html.attention-shield-active .as-meta-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+html.attention-shield-active .as-channel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--yt-spec-text-primary, #f1f1f1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+html.attention-shield-active .as-stats {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--yt-spec-text-secondary, #aaa);
+}
+
+html.attention-shield-active .as-sep {
+  opacity: 0.6;
+}
+
+html.attention-shield-active .as-duration {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Responsive: 2 columns on medium, 1 on small */
+@media (max-width: 1200px) {
+  html.attention-shield-active ytd-rich-grid-renderer #contents,
+  html.attention-shield-active ytd-search #container {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  html.attention-shield-active .as-title {
+    font-size: 18px;
+  }
+
+  html.attention-shield-active .as-views-prominent {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 700px) {
+  html.attention-shield-active ytd-rich-grid-renderer #contents,
+  html.attention-shield-active ytd-search #container {
+    grid-template-columns: 1fr !important;
+  }
+
+  html.attention-shield-active .as-title {
+    font-size: 17px;
+    -webkit-line-clamp: 3;
+  }
+
+  html.attention-shield-active .as-views-prominent {
+    font-size: 15px;
+  }
+}
+
+/* Light theme */
+@media (prefers-color-scheme: light) {
+  html.attention-shield-active .as-card {
+    background: #fff;
+    border-color: rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+
+  html.attention-shield-active
+    ytd-rich-grid-renderer
+    #contents
+    > ytd-rich-item-renderer[data-attention-shield-pending]:not(:has(.as-card)),
+  html.attention-shield-active
+    ytd-rich-grid-renderer
+    #contents
+    > ytd-rich-item-renderer:has(a[href*="/watch?v="]):not([data-attention-shield-hide]):not(
+      :has(.as-card)
+    ),
+  html.attention-shield-active
+    ytd-search
+    ytd-video-renderer:has(a[href*="/watch?v="]):not(:has(.as-card)) {
+    background: #fff;
+    border-color: rgba(0, 0, 0, 0.1);
+  }
+
+  html.attention-shield-active .as-card:hover {
+    border-color: #065fd4;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  html.attention-shield-active .as-title {
+    color: #0f0f0f;
+  }
+
+  html.attention-shield-active .as-title:hover {
+    color: #065fd4;
+  }
+
+  html.attention-shield-active .as-views-prominent {
+    color: #065fd4;
+  }
+
+  html.attention-shield-active .as-footer {
+    border-top-color: rgba(0, 0, 0, 0.08);
+  }
+
+  html.attention-shield-active .as-avatar-stack-inner img {
+    border-color: #fff;
+  }
+
+  html.attention-shield-active .as-channel {
+    color: #0f0f0f;
+  }
+
+  html.attention-shield-active .as-stats {
+    color: #606060;
+  }
+}
