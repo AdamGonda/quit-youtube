@@ -395,19 +395,43 @@ html.attention-shield-active .as-article-channel {
 }
 
 html.attention-shield-active .as-article-body {
-  max-width: 680px;
+  max-width: 720px;
   margin: 0 auto;
+  font-family: Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia,
+    "Times New Roman", serif;
+  font-size: 19px;
 }
 
-html.attention-shield-active .as-article-body p {
-  margin: 0 0 1.25em;
-  font-size: 17px;
-  line-height: 1.75;
+html.attention-shield-active .as-article-body p,
+html.attention-shield-active .as-article-dialogue {
+  margin: 0 0 1.35em;
+  font-size: inherit;
+  line-height: 1.8;
   color: var(--yt-spec-text-primary, #f1f1f1);
 }
 
-html.attention-shield-active .as-article-body p:last-child {
+html.attention-shield-active .as-article-body p:last-child,
+html.attention-shield-active .as-article-turn:last-child .as-article-dialogue {
   margin-bottom: 0;
+}
+
+html.attention-shield-active .as-article-turn {
+  margin: 0 0 1.5em;
+}
+
+html.attention-shield-active .as-article-turn:last-child {
+  margin-bottom: 0;
+}
+
+html.attention-shield-active .as-article-speaker {
+  margin: 0 0 0.35em;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.72em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--yt-spec-call-to-action, #3ea6ff);
 }
 
 html.attention-shield-active .as-article-message {
@@ -451,8 +475,13 @@ html.attention-shield-active .as-title[aria-disabled="true"] {
     font-size: 24px;
   }
 
-  html.attention-shield-active .as-article-body p {
-    font-size: 16px;
+  html.attention-shield-active .as-article-body {
+    font-size: 18px;
+  }
+
+  html.attention-shield-active .as-article-body p,
+  html.attention-shield-active .as-article-dialogue {
+    line-height: 1.75;
   }
 }
 
@@ -481,8 +510,12 @@ html.attention-shield-active .as-title[aria-disabled="true"] {
     padding-right: 72px;
   }
 
-  html.attention-shield-active .as-article-body p {
-    font-size: 15px;
+  html.attention-shield-active .as-article-body {
+    font-size: 17px;
+  }
+
+  html.attention-shield-active .as-article-body p,
+  html.attention-shield-active .as-article-dialogue {
     line-height: 1.7;
   }
 }
@@ -569,7 +602,12 @@ html.attention-shield-active .as-title[aria-disabled="true"] {
     color: #606060;
   }
 
-  html.attention-shield-active .as-article-body p {
+  html.attention-shield-active .as-article-speaker {
+    color: #065fd4;
+  }
+
+  html.attention-shield-active .as-article-body p,
+  html.attention-shield-active .as-article-dialogue {
     color: #0f0f0f;
   }
 }

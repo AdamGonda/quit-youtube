@@ -215,15 +215,33 @@ function setArticleBodyMessage(bodyEl, message, isError = false) {
 
 /**
  * @param {HTMLElement} bodyEl
- * @param {string[]} paragraphs
+ * @param {Array<{ speaker?: string, text: string, isSpeakerTurn: boolean }>} blocks
  */
-function renderArticleBody(bodyEl, paragraphs) {
+function renderArticleBody(bodyEl, blocks) {
   bodyEl.replaceChildren();
   bodyEl.classList.remove("as-article-body-error");
 
-  for (const text of paragraphs) {
+  for (const block of blocks) {
+    if (block.isSpeakerTurn && block.speaker) {
+      const turn = document.createElement("div");
+      turn.className = "as-article-turn";
+
+      const speaker = document.createElement("div");
+      speaker.className = "as-article-speaker";
+      speaker.textContent = block.speaker;
+
+      const dialogue = document.createElement("p");
+      dialogue.className = "as-article-dialogue";
+      dialogue.textContent = block.text;
+
+      turn.appendChild(speaker);
+      turn.appendChild(dialogue);
+      bodyEl.appendChild(turn);
+      continue;
+    }
+
     const paragraph = document.createElement("p");
-    paragraph.textContent = text;
+    paragraph.textContent = block.text;
     bodyEl.appendChild(paragraph);
   }
 }

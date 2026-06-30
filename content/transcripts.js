@@ -1,5 +1,6 @@
 /**
  * @typedef {{ startMs: number, text: string }} TranscriptSegment
+ * @typedef {{ speaker?: string, text: string, isSpeakerTurn: boolean }} ArticleBlock
  */
 
 /** @type {Map<string, TranscriptSegment[] | null>} */
@@ -104,10 +105,133 @@ async function fetchTranscript(videoId) {
 }
 
 /**
+ * @param {string} name
+ * @returns {string}
+ */
+function cleanSpeakerName(name) {
+  return name
+    .replace(/\s+/g, " ")
+    .replace(/^(the|a|an)\s+/i, "")
+    .replace(/,.*$/, "")
+    .trim();
+}
+
+/**
+ * @param {string[]} turns
+ * @returns {string[]}
+ */
+function inferSpeakerNames(turns) {
+  /** @type {string[]} */
+  const names = [];
+
+  const addName = (raw) => {
+    const name = cleanSpeakerName(raw);
+    if (!name || name.length < 2) return;
+    if (names.some((existing) => existing.toLowerCase() === name.toLowerCase())) {
+      return;
+    }
+    names.push(name);
+  };
+
+  for (const turn of turns.slice(0, 6)) {
+    const introMatch = turn.match(
+      /\b(?:I'm|I am|my name is)\s+([A-Z][\w'.-]+(?:\s+(?:the\s+)?[A-Z][\w'.-]+){0,2})/i
+    );
+    if (introMatch) addName(introMatch[1]);
+
+    const guestMatch = turn.match(
+      /\bjoining me(?:\s+\w+){0,4}\s+is\s+([A-Z][\w'.-]+)/i
+    );
+    if (guestMatch) addName(guestMatch[1]);
+
+    const withMatch = turn.match(/\b(?:here with|talking to|speak with)\s+([A-Z][\w'.-]+)/i);
+    if (withMatch) addName(withMatch[1]);
+  }
+
+  if (names.length >= 2) return names.slice(0, 2);
+  if (names.length === 1) return [names[0], "Guest"];
+  return ["Speaker 1", "Speaker 2"];
+}
+
+/**
  * @param {TranscriptSegment[]} segments
  * @returns {string[]}
  */
-function formatArticleBody(segments) {
+function joinSegmentsIntoTurns(segments) {
+  /** @type {string[]} */
+  const turns = [];
+  let current = "";
+
+  for (const segment of segments) {
+    let text = segment.text.trim();
+    if (!text) continue;
+
+    const startsNewSpeaker = /^>>\s?/.test(text);
+    if (startsNewSpeaker) {
+      if (current.trim()) {
+        turns.push(current.trim());
+      }
+      current = text.replace(/^>>\s?/, "").trim();
+      continue;
+    }
+
+    if (!current) {
+      current = text;
+    } else if (current.endsWith("-")) {
+      current += text;
+    } else {
+      current += ` ${text}`;
+    }
+  }
+
+  if (current.trim()) {
+    turns.push(current.trim());
+  }
+
+  return expandInlineSpeakerMarkers(turns);
+}
+
+/**
+ * @param {string[]} turns
+ * @returns {string[]}
+ */
+function expandInlineSpeakerMarkers(turns) {
+  /** @type {string[]} */
+  const expanded = [];
+
+  for (const turn of turns) {
+    const parts = turn
+      .split(/\s*>>\s*/)
+      .map((part) => part.trim())
+      .filter(Boolean);
+    expanded.push(...parts);
+  }
+
+  return expanded;
+}
+
+/**
+ * @param {TranscriptSegment[]} segments
+ * @returns {ArticleBlock[]}
+ */
+function formatAsDialogue(segments) {
+  const turns = joinSegmentsIntoTurns(segments);
+  if (!turns.length) return [];
+
+  const speakers = inferSpeakerNames(turns);
+
+  return turns.map((text, index) => ({
+    speaker: speakers[index % speakers.length],
+    text: text.replace(/\s*>>\s*/g, " ").trim(),
+    isSpeakerTurn: true,
+  }));
+}
+
+/**
+ * @param {TranscriptSegment[]} segments
+ * @returns {string[]}
+ */
+function formatAsArticle(segments) {
   if (!segments.length) return [];
 
   /** @type {string[]} */
@@ -140,6 +264,24 @@ function formatArticleBody(segments) {
   }
 
   return paragraphs;
+}
+
+/**
+ * @param {TranscriptSegment[]} segments
+ * @returns {ArticleBlock[]}
+ */
+function formatArticleBody(segments) {
+  if (!segments.length) return [];
+
+  const hasSpeakerMarkers = segments.some((segment) => />>/.test(segment.text));
+  if (hasSpeakerMarkers) {
+    return formatAsDialogue(segments);
+  }
+
+  return formatAsArticle(segments).map((text) => ({
+    text,
+    isSpeakerTurn: false,
+  }));
 }
 
 function clearTranscriptCache() {
