@@ -8,6 +8,9 @@ let openArticleCard = null;
 /** @type {boolean} */
 let escapeListenerAttached = false;
 
+/** @type {HTMLElement | null} */
+let articleCloseBar = null;
+
 /**
  * @param {Element} card
  * @returns {boolean}
@@ -254,6 +257,37 @@ function renderArticleBody(bodyEl, blocks) {
 /**
  * @param {Element} card
  */
+function mountArticleCloseBar(card) {
+  unmountArticleCloseBar();
+
+  const bar = document.createElement("div");
+  bar.className = "as-article-close-bar";
+
+  const closeButton = document.createElement("button");
+  closeButton.type = "button";
+  closeButton.className = "as-article-close";
+  closeButton.textContent = "Close";
+  closeButton.setAttribute("aria-label", "Close transcript");
+  closeButton.addEventListener("click", () => {
+    closeArticle(card);
+  });
+
+  bar.appendChild(closeButton);
+  document.body.appendChild(bar);
+  articleCloseBar = bar;
+}
+
+function unmountArticleCloseBar() {
+  articleCloseBar?.remove();
+  articleCloseBar = null;
+  document.querySelector(".as-article-close-bar")?.remove();
+  document.querySelector(".as-article-close-fab")?.remove();
+  document.querySelector(".as-article-scroll-top")?.remove();
+}
+
+/**
+ * @param {Element} card
+ */
 function closeArticle(card) {
   const cardEl = card.querySelector(":scope > .as-card");
   if (!cardEl) return;
@@ -269,6 +303,7 @@ function closeArticle(card) {
 
   if (openArticleCard === card) {
     openArticleCard = null;
+    unmountArticleCloseBar();
   }
 }
 
@@ -305,6 +340,7 @@ async function openArticle(card, metadata) {
   cardEl.classList.add("as-article-open");
   card.setAttribute("data-attention-shield-article", "1");
   openArticleCard = card;
+  mountArticleCloseBar(card);
 
   card.scrollIntoView({ behavior: "smooth", block: "start" });
 
@@ -366,6 +402,9 @@ async function openArticle(card, metadata) {
   }
 
   renderArticleBody(articleBody, paragraphs);
+  if (openArticleCard === card) {
+    mountArticleCloseBar(card);
+  }
 }
 
 /**
@@ -380,13 +419,6 @@ function wireArticleControls(cardEl, parentCard, metadata) {
       event.preventDefault();
       if (titleLink.classList.contains("as-title-loading")) return;
       void openArticle(parentCard, metadata);
-    });
-  }
-
-  const closeButton = cardEl.querySelector(".as-article-close");
-  if (closeButton instanceof HTMLButtonElement) {
-    closeButton.addEventListener("click", () => {
-      closeArticle(parentCard);
     });
   }
 }
@@ -435,12 +467,6 @@ function buildCardElement(metadata) {
   const articleHeader = document.createElement("header");
   articleHeader.className = "as-article-header";
 
-  const closeButton = document.createElement("button");
-  closeButton.type = "button";
-  closeButton.className = "as-article-close";
-  closeButton.textContent = "Close";
-  closeButton.setAttribute("aria-label", "Close transcript");
-
   const articleTitle = document.createElement("h2");
   articleTitle.className = "as-article-title";
   articleTitle.textContent = metadata.title;
@@ -449,7 +475,6 @@ function buildCardElement(metadata) {
   articleChannel.className = "as-article-channel";
   articleChannel.textContent = metadata.channel;
 
-  articleHeader.appendChild(closeButton);
   articleHeader.appendChild(articleTitle);
   articleHeader.appendChild(articleChannel);
 
@@ -710,6 +735,7 @@ function transformCard(card) {
 function restoreCard(card) {
   if (openArticleCard === card) {
     openArticleCard = null;
+    unmountArticleCloseBar();
   }
 
   card.removeAttribute("data-attention-shield-article");
@@ -793,7 +819,10 @@ function upgradePendingAvatars() {
  * @param {ParentNode} root
  */
 function restoreAllCards(root = document) {
-  openArticleCard = null;
+  if (openArticleCard) {
+    openArticleCard = null;
+    unmountArticleCloseBar();
+  }
 
   const cards = root.querySelectorAll("[data-attention-shield]");
   for (const card of cards) {

@@ -361,7 +361,23 @@ html.attention-shield-active .as-card.as-article-open .as-article {
 
 html.attention-shield-active .as-card.as-article-open {
   min-height: auto;
-  padding: 24px 28px 32px;
+  padding: 56px 28px 32px;
+}
+
+html.attention-shield-active .as-article-close-bar {
+  position: fixed;
+  top: 56px;
+  left: 0;
+  right: 0;
+  z-index: 2147483646;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 10px 24px;
+  background: var(--yt-spec-base-background, #0f0f0f);
+  border-bottom: 1px solid var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.08));
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+  pointer-events: auto;
 }
 
 html.attention-shield-active .as-article-header {
@@ -372,27 +388,26 @@ html.attention-shield-active .as-article-header {
 }
 
 html.attention-shield-active .as-article-close {
-  position: absolute;
-  top: 0;
-  right: 0;
-  padding: 6px 12px;
-  border: 1px solid var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.15));
+  padding: 8px 18px;
+  border: 2px solid var(--yt-spec-call-to-action, #3ea6ff);
   border-radius: 999px;
-  background: transparent;
-  color: var(--yt-spec-text-secondary, #aaa);
-  font-size: 13px;
-  font-weight: 500;
+  background: var(--yt-spec-base-background, #0f0f0f);
+  color: var(--yt-spec-text-primary, #f1f1f1);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 
 html.attention-shield-active .as-article-close:hover {
-  color: var(--yt-spec-text-primary, #f1f1f1);
+  color: var(--yt-spec-call-to-action, #3ea6ff);
   border-color: var(--yt-spec-call-to-action, #3ea6ff);
+  background: rgba(62, 166, 255, 0.12);
 }
 
 html.attention-shield-active .as-article-title {
-  margin: 0 72px 8px 0;
+  margin: 0 0 8px;
   font-size: 28px;
   font-weight: 700;
   line-height: 1.25;
@@ -514,13 +529,17 @@ html.attention-shield-active .as-title[aria-disabled="true"] {
   }
 
   html.attention-shield-active .as-card.as-article-open {
-    padding: 18px 16px 24px;
+    padding: 56px 16px 24px;
+  }
+
+  html.attention-shield-active .as-article-close-bar {
+    padding: 10px 16px;
   }
 
   html.attention-shield-active .as-article-title {
     font-size: 22px;
     margin-right: 0;
-    padding-right: 72px;
+    padding-right: 0;
   }
 
   html.attention-shield-active .as-article-body {
@@ -596,13 +615,21 @@ html.attention-shield-active .as-title[aria-disabled="true"] {
   }
 
   html.attention-shield-active .as-article-close {
-    border-color: rgba(0, 0, 0, 0.12);
-    color: #606060;
+    border-color: #065fd4;
+    color: #0f0f0f;
+    background: #fff;
   }
 
   html.attention-shield-active .as-article-close:hover {
-    color: #0f0f0f;
+    color: #065fd4;
     border-color: #065fd4;
+    background: rgba(6, 95, 212, 0.1);
+  }
+
+  html.attention-shield-active .as-article-close-bar {
+    background: #fff;
+    border-bottom-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   }
 
   html.attention-shield-active .as-article-title {
