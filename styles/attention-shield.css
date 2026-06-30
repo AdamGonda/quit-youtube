@@ -22,6 +22,19 @@ html.attention-shield-active ytd-rich-item-renderer:has(#attached-survey) {
   display: none !important;
 }
 
+/* YouTube Premium / in-feed promos */
+html.attention-shield-active ytd-rich-item-renderer:has(.badge[aria-label="Premium"]),
+html.attention-shield-active ytd-rich-item-renderer:has(badge-shape[aria-label="Premium"]),
+html.attention-shield-active ytd-rich-item-renderer:has(a[href*="/premium"]),
+html.attention-shield-active ytd-rich-item-renderer:has(ytd-ad-slot-renderer),
+html.attention-shield-active ytd-rich-item-renderer:has(ytd-in-feed-ad-layout-renderer),
+html.attention-shield-active ytd-rich-item-renderer:has(ytd-banner-promo-renderer),
+html.attention-shield-active ytd-rich-section-renderer:has(a[href*="/premium"]),
+html.attention-shield-active ytd-banner-promo-renderer,
+html.attention-shield-active ytd-in-feed-ad-layout-renderer {
+  display: none !important;
+}
+
 /* Explore more topics / chips shelves */
 html.attention-shield-active
   ytd-rich-section-renderer[data-attention-shield-hide],

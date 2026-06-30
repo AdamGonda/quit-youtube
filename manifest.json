@@ -31,8 +31,8 @@
         "content/card-types.js",
         "content/extractors.js",
         "content/transcripts.js",
-        "content/transform.js",
         "content/feed-cleanup.js",
+        "content/transform.js",
         "content/observer.js",
         "content/content.js"
       ],

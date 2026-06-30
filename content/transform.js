@@ -67,12 +67,17 @@ function isSurveyCard(card) {
   );
 }
 
+function isPremiumPromoCard(card) {
+  return window.AttentionShieldFeedCleanup.isPremiumPromoItem(card);
+}
+
 /**
  * @param {Element} card
  * @returns {boolean}
  */
 function isVideoCard(card) {
   if (isAdCard(card)) return false;
+  if (isPremiumPromoCard(card)) return false;
   if (isShortsCard(card)) return false;
   if (isSurveyCard(card)) return false;
   if (isExploreTopicsCard(card)) return false;
