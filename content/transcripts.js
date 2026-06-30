@@ -104,6 +104,10 @@ async function fetchTranscript(videoId) {
   return pending;
 }
 
+const NAME_TOKEN = "[A-Z][a-z]+(?:['.-][A-Za-z]+)?";
+const NAME_BOUNDARY =
+  "(?=\\s+(?:and|but|who|with|on|from|for|here|today|this|to)\\b|[,.]|\\s*$)";
+
 /**
  * @param {string} name
  * @returns {string}
@@ -113,7 +117,44 @@ function cleanSpeakerName(name) {
     .replace(/\s+/g, " ")
     .replace(/^(the|a|an)\s+/i, "")
     .replace(/,.*$/, "")
+    .replace(/\s+and$/i, "")
     .trim();
+}
+
+/**
+ * @param {string} turn
+ * @returns {string | null}
+ */
+function extractHostName(turn) {
+  const introMatch = turn.match(
+    new RegExp(
+      `\\b(?:I'm|I am|my name is)\\s+(?!not\\b|sure\\b)(?:the\\s+)?(${NAME_TOKEN}(?:\\s+${NAME_TOKEN})?)${NAME_BOUNDARY}`,
+      "i"
+    )
+  );
+  return introMatch ? cleanSpeakerName(introMatch[1]) : null;
+}
+
+/**
+ * @param {string} turn
+ * @returns {string | null}
+ */
+function extractGuestName(turn) {
+  const guestMatch = turn.match(
+    new RegExp(
+      `\\bjoining me\\b[^.]{0,120}?\\bis\\s+(${NAME_TOKEN}(?:\\s*,\\s*(?:the\\s+)?${NAME_TOKEN}(?:\\s+${NAME_TOKEN})?)?)`,
+      "i"
+    )
+  );
+  if (guestMatch) return cleanSpeakerName(guestMatch[1]);
+
+  const withMatch = turn.match(
+    new RegExp(
+      `\\b(?:here with|talking to|speak with)\\s+(${NAME_TOKEN}(?:\\s+${NAME_TOKEN})?)${NAME_BOUNDARY}`,
+      "i"
+    )
+  );
+  return withMatch ? cleanSpeakerName(withMatch[1]) : null;
 }
 
 /**
@@ -121,36 +162,62 @@ function cleanSpeakerName(name) {
  * @returns {string[]}
  */
 function inferSpeakerNames(turns) {
-  /** @type {string[]} */
-  const names = [];
+  /** @type {string | null} */
+  let host = null;
+  /** @type {string | null} */
+  let guest = null;
 
-  const addName = (raw) => {
-    const name = cleanSpeakerName(raw);
-    if (!name || name.length < 2) return;
-    if (names.some((existing) => existing.toLowerCase() === name.toLowerCase())) {
-      return;
+  for (const turn of turns.slice(0, 8)) {
+    if (!host) {
+      host = extractHostName(turn);
     }
-    names.push(name);
-  };
-
-  for (const turn of turns.slice(0, 6)) {
-    const introMatch = turn.match(
-      /\b(?:I'm|I am|my name is)\s+([A-Z][\w'.-]+(?:\s+(?:the\s+)?[A-Z][\w'.-]+){0,2})/i
-    );
-    if (introMatch) addName(introMatch[1]);
-
-    const guestMatch = turn.match(
-      /\bjoining me(?:\s+\w+){0,4}\s+is\s+([A-Z][\w'.-]+)/i
-    );
-    if (guestMatch) addName(guestMatch[1]);
-
-    const withMatch = turn.match(/\b(?:here with|talking to|speak with)\s+([A-Z][\w'.-]+)/i);
-    if (withMatch) addName(withMatch[1]);
+    if (!guest) {
+      guest = extractGuestName(turn);
+    }
+    if (host && guest) break;
   }
 
-  if (names.length >= 2) return names.slice(0, 2);
-  if (names.length === 1) return [names[0], "Guest"];
+  if (host && guest) return [host, guest];
+  if (host) return [host, "Guest"];
+  if (guest) return ["Host", guest];
   return ["Speaker 1", "Speaker 2"];
+}
+
+/**
+ * @param {string[]} turns
+ * @returns {number}
+ */
+function findIntroTurnIndex(turns) {
+  for (let index = 0; index < Math.min(turns.length, 8); index++) {
+    const turn = turns[index];
+    if (extractHostName(turn) && /\bjoining me\b/i.test(turn)) {
+      return index;
+    }
+  }
+
+  for (let index = 0; index < Math.min(turns.length, 8); index++) {
+    if (extractHostName(turns[index])) {
+      return index;
+    }
+  }
+
+  return -1;
+}
+
+/**
+ * @param {number} turnIndex
+ * @param {number} introTurnIndex
+ * @param {string[]} speakers
+ * @returns {string}
+ */
+function speakerForTurnIndex(turnIndex, introTurnIndex, speakers) {
+  if (speakers.length < 2) {
+    return speakers[0] ?? "Speaker";
+  }
+
+  const hostParity = introTurnIndex >= 0 ? introTurnIndex % 2 : 0;
+  const speakerIndex = turnIndex % 2 === hostParity ? 0 : 1;
+  return speakers[speakerIndex];
 }
 
 /**
@@ -219,9 +286,10 @@ function formatAsDialogue(segments) {
   if (!turns.length) return [];
 
   const speakers = inferSpeakerNames(turns);
+  const introTurnIndex = findIntroTurnIndex(turns);
 
   return turns.map((text, index) => ({
-    speaker: speakers[index % speakers.length],
+    speaker: speakerForTurnIndex(index, introTurnIndex, speakers),
     text: text.replace(/\s*>>\s*/g, " ").trim(),
     isSpeakerTurn: true,
   }));
