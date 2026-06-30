@@ -6,6 +6,7 @@ A Chrome extension that replaces YouTube's thumbnail-heavy feeds with a clean, t
 
 - Hides video thumbnails on homepage, search, subscriptions, and channel video tabs
 - Shows channel profile picture, title, creator, views, and duration
+- Click a title to read the video transcript as an article (no autoplay)
 - Hides Shorts shelves
 - Handles infinite scroll and YouTube SPA navigation
 - Toggle on/off via the extension popup
@@ -21,7 +22,8 @@ A Chrome extension that replaces YouTube's thumbnail-heavy feeds with a clean, t
 ## Usage
 
 - Click the Attention Shield icon in the toolbar to toggle text-only mode on or off
-- Click a **title** to open the video
+- Click a **title** to open the transcript as a readable article (stays on the feed)
+- Click **Close** or press Escape to return to the compact card
 - Click the **channel avatar** to open the channel page
 
 ## Project Structure

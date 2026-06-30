@@ -28,6 +28,11 @@ function init() {
     window.AttentionShieldTransform.upgradePendingAvatars();
   });
 
+  document.addEventListener("yt-navigate-finish", () => {
+    window.AttentionShieldTransform.closeAllArticles();
+    window.AttentionShieldTranscripts.clearTranscriptCache();
+  });
+
   chrome.storage.sync.get({ enabled: true }, ({ enabled }) => {
     setEnabled(enabled);
     window.AttentionShieldObserver.initObserver();

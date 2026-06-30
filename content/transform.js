@@ -2,6 +2,12 @@
 
 const processedCards = new WeakSet();
 
+/** @type {Element | null} */
+let openArticleCard = null;
+
+/** @type {boolean} */
+let escapeListenerAttached = false;
+
 /**
  * @param {Element} card
  * @returns {boolean}
@@ -191,6 +197,176 @@ function applyAvatars(avatarLink, metadata) {
 }
 
 /**
+ * @param {HTMLElement} bodyEl
+ * @param {string} message
+ * @param {boolean} isError
+ */
+function setArticleBodyMessage(bodyEl, message, isError = false) {
+  bodyEl.replaceChildren();
+  bodyEl.classList.toggle("as-article-body-error", isError);
+
+  const paragraph = document.createElement("p");
+  paragraph.className = isError
+    ? "as-article-message as-article-message-error"
+    : "as-article-message";
+  paragraph.textContent = message;
+  bodyEl.appendChild(paragraph);
+}
+
+/**
+ * @param {HTMLElement} bodyEl
+ * @param {string[]} paragraphs
+ */
+function renderArticleBody(bodyEl, paragraphs) {
+  bodyEl.replaceChildren();
+  bodyEl.classList.remove("as-article-body-error");
+
+  for (const text of paragraphs) {
+    const paragraph = document.createElement("p");
+    paragraph.textContent = text;
+    bodyEl.appendChild(paragraph);
+  }
+}
+
+/**
+ * @param {Element} card
+ */
+function closeArticle(card) {
+  const cardEl = card.querySelector(":scope > .as-card");
+  if (!cardEl) return;
+
+  cardEl.classList.remove("as-article-open");
+  card.removeAttribute("data-attention-shield-article");
+
+  const titleLink = cardEl.querySelector(".as-title");
+  if (titleLink instanceof HTMLAnchorElement) {
+    titleLink.removeAttribute("aria-disabled");
+    titleLink.classList.remove("as-title-loading");
+  }
+
+  if (openArticleCard === card) {
+    openArticleCard = null;
+  }
+}
+
+function closeOpenArticle() {
+  if (openArticleCard) {
+    closeArticle(openArticleCard);
+  }
+}
+
+function ensureEscapeListener() {
+  if (escapeListenerAttached) return;
+  escapeListenerAttached = true;
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    closeOpenArticle();
+  });
+}
+
+/**
+ * @param {Element} card
+ * @param {VideoMetadata} metadata
+ */
+async function openArticle(card, metadata) {
+  const cardEl = card.querySelector(":scope > .as-card");
+  if (!cardEl) return;
+
+  if (openArticleCard && openArticleCard !== card) {
+    closeArticle(openArticleCard);
+  }
+
+  ensureEscapeListener();
+
+  cardEl.classList.add("as-article-open");
+  card.setAttribute("data-attention-shield-article", "1");
+  openArticleCard = card;
+
+  const titleLink = cardEl.querySelector(".as-title");
+  if (titleLink instanceof HTMLAnchorElement) {
+    titleLink.setAttribute("aria-disabled", "true");
+    titleLink.classList.add("as-title-loading");
+  }
+
+  const articleHeaderTitle = cardEl.querySelector(".as-article-title");
+  const articleHeaderChannel = cardEl.querySelector(".as-article-channel");
+  const articleBody = cardEl.querySelector(".as-article-body");
+
+  if (articleHeaderTitle) {
+    articleHeaderTitle.textContent = metadata.title;
+  }
+  if (articleHeaderChannel) {
+    articleHeaderChannel.textContent = metadata.channel;
+  }
+  if (articleBody instanceof HTMLElement) {
+    setArticleBodyMessage(articleBody, "Loading transcript…", false);
+  }
+
+  const segments = await window.AttentionShieldTranscripts.fetchTranscript(
+    metadata.videoId
+  );
+
+  if (!cardEl.classList.contains("as-article-open")) {
+    return;
+  }
+
+  if (titleLink instanceof HTMLAnchorElement) {
+    titleLink.removeAttribute("aria-disabled");
+    titleLink.classList.remove("as-title-loading");
+  }
+
+  if (!(articleBody instanceof HTMLElement)) return;
+
+  if (!segments?.length) {
+    setArticleBodyMessage(
+      articleBody,
+      "No transcript available",
+      true
+    );
+    return;
+  }
+
+  const paragraphs = window.AttentionShieldTranscripts.formatArticleBody(
+    segments
+  );
+
+  if (!paragraphs.length) {
+    setArticleBodyMessage(
+      articleBody,
+      "No transcript available",
+      true
+    );
+    return;
+  }
+
+  renderArticleBody(articleBody, paragraphs);
+}
+
+/**
+ * @param {HTMLElement} cardEl
+ * @param {Element} parentCard
+ * @param {VideoMetadata} metadata
+ */
+function wireArticleControls(cardEl, parentCard, metadata) {
+  const titleLink = cardEl.querySelector(".as-title");
+  if (titleLink instanceof HTMLAnchorElement) {
+    titleLink.addEventListener("click", (event) => {
+      event.preventDefault();
+      if (titleLink.classList.contains("as-title-loading")) return;
+      void openArticle(parentCard, metadata);
+    });
+  }
+
+  const closeButton = cardEl.querySelector(".as-article-close");
+  if (closeButton instanceof HTMLButtonElement) {
+    closeButton.addEventListener("click", () => {
+      closeArticle(parentCard);
+    });
+  }
+}
+
+/**
  * @param {VideoMetadata} metadata
  * @returns {HTMLElement}
  */
@@ -203,6 +379,7 @@ function buildCardElement(metadata) {
   titleLink.href = metadata.href;
   titleLink.textContent = metadata.title;
   titleLink.title = metadata.title;
+  titleLink.setAttribute("role", "button");
 
   const footer = document.createElement("div");
   footer.className = "as-footer";
@@ -240,6 +417,36 @@ function buildCardElement(metadata) {
   footer.appendChild(avatarLink);
   footer.appendChild(metaCol);
 
+  const article = document.createElement("article");
+  article.className = "as-article";
+
+  const articleHeader = document.createElement("header");
+  articleHeader.className = "as-article-header";
+
+  const closeButton = document.createElement("button");
+  closeButton.type = "button";
+  closeButton.className = "as-article-close";
+  closeButton.textContent = "Close";
+  closeButton.setAttribute("aria-label", "Close transcript");
+
+  const articleTitle = document.createElement("h2");
+  articleTitle.className = "as-article-title";
+  articleTitle.textContent = metadata.title;
+
+  const articleChannel = document.createElement("p");
+  articleChannel.className = "as-article-channel";
+  articleChannel.textContent = metadata.channel;
+
+  articleHeader.appendChild(closeButton);
+  articleHeader.appendChild(articleTitle);
+  articleHeader.appendChild(articleChannel);
+
+  const articleBody = document.createElement("div");
+  articleBody.className = "as-article-body";
+
+  article.appendChild(articleHeader);
+  article.appendChild(articleBody);
+
   card.appendChild(titleLink);
 
   if (metadata.views) {
@@ -250,6 +457,7 @@ function buildCardElement(metadata) {
   }
 
   card.appendChild(footer);
+  card.appendChild(article);
 
   return card;
 }
@@ -348,7 +556,10 @@ function injectCard(card, metadata) {
     card.querySelector("#dismissible") ||
     card;
 
+  card.setAttribute("data-video-id", metadata.videoId);
+
   const cardEl = buildCardElement(metadata);
+  wireArticleControls(cardEl, card, metadata);
   card.appendChild(cardEl);
 
   if (contentRoot !== card) {
@@ -396,6 +607,13 @@ function transformCard(card) {
  * @param {Element} card
  */
 function restoreCard(card) {
+  if (openArticleCard === card) {
+    openArticleCard = null;
+  }
+
+  card.removeAttribute("data-attention-shield-article");
+  card.removeAttribute("data-video-id");
+
   const injected = card.querySelector(":scope > .as-card");
   if (injected) {
     injected.remove();
@@ -409,6 +627,10 @@ function restoreCard(card) {
   }
 
   unmarkProcessed(card);
+}
+
+function closeAllArticles() {
+  closeOpenArticle();
 }
 
 function upgradePendingAvatars() {
@@ -459,6 +681,8 @@ function upgradePendingAvatars() {
  * @param {ParentNode} root
  */
 function restoreAllCards(root = document) {
+  openArticleCard = null;
+
   const cards = root.querySelectorAll("[data-attention-shield]");
   for (const card of cards) {
     restoreCard(card);
@@ -474,4 +698,5 @@ window.AttentionShieldTransform = {
   restoreCard,
   restoreAllCards,
   upgradePendingAvatars,
+  closeAllArticles,
 };

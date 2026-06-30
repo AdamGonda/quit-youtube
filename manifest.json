@@ -30,6 +30,7 @@
         "content/avatar-cache.js",
         "content/card-types.js",
         "content/extractors.js",
+        "content/transcripts.js",
         "content/transform.js",
         "content/feed-cleanup.js",
         "content/observer.js",
