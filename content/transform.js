@@ -283,6 +283,8 @@ async function openArticle(card, metadata) {
   card.setAttribute("data-attention-shield-article", "1");
   openArticleCard = card;
 
+  card.scrollIntoView({ behavior: "smooth", block: "start" });
+
   const titleLink = cardEl.querySelector(".as-title");
   if (titleLink instanceof HTMLAnchorElement) {
     titleLink.setAttribute("aria-disabled", "true");

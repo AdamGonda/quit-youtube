@@ -319,6 +319,18 @@ html.attention-shield-active
   grid-column: 1 / -1 !important;
 }
 
+/* Hide other feed cards while reading a transcript */
+html.attention-shield-active
+  ytd-rich-grid-renderer
+  #contents:has(> ytd-rich-item-renderer[data-attention-shield-article])
+  > ytd-rich-item-renderer[data-attention-shield]:not([data-attention-shield-article]),
+html.attention-shield-active
+  ytd-search
+  #container:has(> ytd-video-renderer[data-attention-shield-article])
+  > ytd-video-renderer[data-attention-shield]:not([data-attention-shield-article]) {
+  display: none !important;
+}
+
 html.attention-shield-active .as-article {
   display: none;
 }
