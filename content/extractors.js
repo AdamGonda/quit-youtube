@@ -27,6 +27,57 @@ function isDurationLike(text) {
 }
 
 /**
+ * @param {unknown} raw
+ * @returns {string | null}
+ */
+function formatDurationFromSeconds(raw) {
+  const total = Math.floor(Number(raw));
+  if (!Number.isFinite(total) || total <= 0) return null;
+
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+/**
+ * @param {string} text
+ * @returns {string | null}
+ */
+function parseDurationFromText(text) {
+  if (!text) return null;
+
+  const colonMatch = text.match(/\b(\d{1,2}:\d{2}(?::\d{2})?)\b/);
+  if (colonMatch?.[1] && isDurationLike(colonMatch[1])) {
+    return colonMatch[1];
+  }
+
+  if (LIVE_PATTERN.test(text.trim())) {
+    return text.trim().toUpperCase() === "PREMIERE" ? "PREMIERE" : "LIVE";
+  }
+
+  let totalSeconds = 0;
+  const hoursMatch = text.match(/(\d+)\s*(?:hours?|hrs?)\b/i);
+  const minutesMatch = text.match(/(\d+)\s*(?:minutes?|mins?)\b/i);
+  const secondsMatch = text.match(/(\d+)\s*(?:seconds?|secs?)\b/i);
+
+  if (hoursMatch) totalSeconds += Number(hoursMatch[1]) * 3600;
+  if (minutesMatch) totalSeconds += Number(minutesMatch[1]) * 60;
+  if (secondsMatch) totalSeconds += Number(secondsMatch[1]);
+
+  if (totalSeconds > 0) {
+    return formatDurationFromSeconds(totalSeconds);
+  }
+
+  return null;
+}
+
+/**
  * @param {string} text
  * @returns {boolean}
  */
@@ -476,26 +527,59 @@ function findAvatarUrls(card, videoId) {
  * @param {Element} card
  * @returns {string | null}
  */
-function findDuration(card) {
+function findDuration(card, videoId) {
   const liveBadge = card.querySelector(
-    '.badge-style-type-live-now, .badge[aria-label="LIVE"], .badge-shape-wiz--thumbnail-live'
+    '.badge-style-type-live-now, .badge[aria-label="LIVE"], .badge-shape-wiz--thumbnail-live, .badge-shape-wiz--thumbnail-live'
   );
   if (liveBadge) {
     return "LIVE";
   }
 
+  if (videoId && window.AttentionShieldAvatarCache) {
+    const cached = window.AttentionShieldAvatarCache.getDurationForVideo(videoId);
+    if (cached) return cached;
+  }
+
   const durationSelectors = [
     "ytd-thumbnail-overlay-time-status-renderer span",
+    "ytd-thumbnail-overlay-time-status-renderer",
+    ".yt-thumbnail-overlay-view-model__duration",
+    ".yt-thumbnail-overlay-view-model-wiz__duration",
+    ".yt-thumbnail-badge-view-model__badge",
+    "yt-thumbnail-badge-view-model",
     ".yt-badge-shape__text",
     "badge-shape .yt-badge-shape__text",
-    "ytd-thumbnail-overlay-time-status-renderer",
+    ".badge-shape-wiz__text",
+    "yt-thumbnail-overlay-time-status-renderer span",
   ];
 
   for (const selector of durationSelectors) {
     const el = card.querySelector(selector);
-    if (el?.textContent?.trim()) {
-      return el.textContent.trim();
+    const text = el?.textContent?.trim() || "";
+    if (text && isDurationLike(text)) {
+      return text;
     }
+  }
+
+  const thumbnailArea = card.querySelector(
+    "ytd-thumbnail, .yt-lockup-view-model__content-image, .yt-thumbnail-view-model, .yt-lockup-view-model-wiz__content-image"
+  );
+  if (thumbnailArea) {
+    for (const el of thumbnailArea.querySelectorAll("span, div")) {
+      const text = el.textContent?.trim() || "";
+      if (text && isDurationLike(text)) {
+        return text;
+      }
+    }
+  }
+
+  for (const link of card.querySelectorAll('a[href*="/watch?v="]')) {
+    const label =
+      link.getAttribute("aria-label")?.trim() ||
+      link.getAttribute("title")?.trim() ||
+      "";
+    const parsed = parseDurationFromText(label);
+    if (parsed) return parsed;
   }
 
   return null;
@@ -550,7 +634,7 @@ function extractLegacy(card) {
     }
   }
 
-  const duration = findDuration(card) || undefined;
+  const duration = findDuration(card, videoId) || undefined;
 
   if (!isValidTitle(title) || !isValidChannel(channel)) return null;
 
@@ -581,7 +665,7 @@ function extractFlatLayout(card) {
   const title = findTitle(card);
   const presentation = extractChannelPresentation(card, videoId);
   let { channel, channelHref, avatarUrl, avatarUrls, views } = presentation;
-  const duration = findDuration(card) || undefined;
+  const duration = findDuration(card, videoId) || undefined;
 
   if (!isValidTitle(title)) return null;
 
@@ -624,7 +708,7 @@ function extractLockup(card) {
   const title = findTitle(card);
   const presentation = extractChannelPresentation(card, videoId);
   let { channel, channelHref, avatarUrl, avatarUrls, views } = presentation;
-  const duration = findDuration(card) || undefined;
+  const duration = findDuration(card, videoId) || undefined;
 
   if (!views) {
     const contentText = card.textContent || "";
@@ -670,4 +754,5 @@ window.AttentionShieldExtractors = {
   findChannelLink,
   findAvatarUrl,
   findAvatarUrls,
+  findDuration,
 };

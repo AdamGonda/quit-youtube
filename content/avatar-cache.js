@@ -4,6 +4,197 @@ const avatarByVideoId = new Map();
 const avatarsByVideoId = new Map();
 /** @type {Map<string, string>} */
 const channelByVideoId = new Map();
+/** @type {Map<string, string>} */
+const durationByVideoId = new Map();
+
+/**
+ * @param {string} text
+ * @returns {boolean}
+ */
+function isVideoDurationLabel(text) {
+  const trimmed = text.trim();
+  return (
+    /^\d{1,2}:\d{2}(:\d{2})?$/.test(trimmed) ||
+    /^(LIVE|UPCOMING|PREMIERE)$/i.test(trimmed)
+  );
+}
+
+/**
+ * @param {unknown} value
+ * @returns {string | null}
+ */
+function readSimpleText(value) {
+  if (typeof value === "string" && value.trim()) {
+    return value.trim();
+  }
+  if (!value || typeof value !== "object") return null;
+  const record = /** @type {Record<string, unknown>} */ (value);
+  if (typeof record.simpleText === "string" && record.simpleText.trim()) {
+    return record.simpleText.trim();
+  }
+  if (typeof record.content === "string" && record.content.trim()) {
+    return record.content.trim();
+  }
+  const runs = record.runs;
+  if (Array.isArray(runs) && runs.length > 0) {
+    const first = runs[0];
+    if (first && typeof first === "object") {
+      const text = /** @type {{ text?: string }} */ (first).text;
+      if (typeof text === "string" && text.trim()) {
+        return text.trim();
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * @param {unknown} raw
+ * @returns {string | null}
+ */
+function formatDurationFromSeconds(raw) {
+  const total = Math.floor(Number(raw));
+  if (!Number.isFinite(total) || total <= 0) return null;
+
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+/**
+ * @param {Record<string, unknown>} viewModel
+ * @returns {string | null}
+ */
+function extractDurationFromLockupOverlays(viewModel) {
+  const contentImage = /** @type {Record<string, unknown>} */ (
+    viewModel.contentImage
+  );
+  const thumbnailViewModel = /** @type {Record<string, unknown>} */ (
+    contentImage?.thumbnailViewModel
+  );
+  const overlays = /** @type {unknown[] | undefined} */ (
+    thumbnailViewModel?.overlays
+  );
+
+  if (!Array.isArray(overlays)) return null;
+
+  for (const overlay of overlays) {
+    if (!overlay || typeof overlay !== "object") continue;
+    const overlayRecord = /** @type {Record<string, unknown>} */ (overlay);
+
+    const badgeGroups = [
+      /** @type {unknown[] | undefined} */ (
+        /** @type {Record<string, unknown>} */ (
+          overlayRecord.thumbnailOverlayBadgeViewModel
+        )?.thumbnailBadges
+      ),
+      /** @type {unknown[] | undefined} */ (
+        /** @type {Record<string, unknown>} */ (
+          overlayRecord.thumbnailBottomOverlayViewModel
+        )?.badges
+      ),
+    ];
+
+    for (const group of badgeGroups) {
+      if (!Array.isArray(group)) continue;
+
+      for (const badge of group) {
+        if (!badge || typeof badge !== "object") continue;
+        const badgeRecord = /** @type {Record<string, unknown>} */ (badge);
+        const badgeVm = /** @type {Record<string, unknown>} */ (
+          badgeRecord.thumbnailBadgeViewModel
+        );
+        const text =
+          readSimpleText(badgeVm?.text) || readSimpleText(badgeVm?.label);
+        if (text && isVideoDurationLabel(text)) {
+          return text;
+        }
+      }
+    }
+
+    const timeOverlay = /** @type {Record<string, unknown>} */ (
+      overlayRecord.thumbnailOverlayTimeStatusViewModel
+    );
+    const timeText = readSimpleText(timeOverlay?.text);
+    if (timeText && isVideoDurationLabel(timeText)) {
+      return timeText;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * @param {string} videoId
+ * @param {string | null | undefined} duration
+ */
+function rememberDuration(videoId, duration) {
+  if (!videoId || !duration) return;
+  const trimmed = duration.trim();
+  if (!isVideoDurationLabel(trimmed)) return;
+  if (durationByVideoId.get(videoId) === trimmed) return;
+  durationByVideoId.set(videoId, trimmed);
+
+  for (const callback of updateCallbacks) {
+    callback();
+  }
+}
+
+/**
+ * @param {unknown} node
+ * @param {number} depth
+ * @returns {string | null}
+ */
+function findDurationTextInNode(node, depth = 0) {
+  if (!node || typeof node !== "object" || depth > 12) return null;
+
+  if (Array.isArray(node)) {
+    for (const item of node) {
+      const found = findDurationTextInNode(item, depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  const obj = /** @type {Record<string, unknown>} */ (node);
+
+  const lengthText = readSimpleText(obj.lengthText);
+  if (lengthText && isVideoDurationLabel(lengthText)) {
+    return lengthText;
+  }
+
+  const overlay = /** @type {Record<string, unknown>} */ (
+    obj.thumbnailOverlayTimeStatusViewModel
+  );
+  const overlayText = readSimpleText(overlay?.text);
+  if (overlayText && isVideoDurationLabel(overlayText)) {
+    return overlayText;
+  }
+
+  const badgeVm = /** @type {Record<string, unknown>} */ (
+    obj.thumbnailBadgeViewModel
+  );
+  const badgeText =
+    readSimpleText(badgeVm?.text) || readSimpleText(badgeVm?.label);
+  if (badgeText && isVideoDurationLabel(badgeText)) {
+    return badgeText;
+  }
+
+  for (const value of Object.values(obj)) {
+    if (value && typeof value === "object") {
+      const found = findDurationTextInNode(value, depth + 1);
+      if (found) return found;
+    }
+  }
+
+  return null;
+}
 
 const AVATAR_URL_HINT =
   /(?:ggpht\.com|googleusercontent\.com|ytimg\.com\/ytc\/)/i;
@@ -110,6 +301,16 @@ function indexVideoRenderer(renderer) {
     ),
   ];
 
+  const lengthText = readSimpleText(renderer.lengthText);
+  if (lengthText) {
+    rememberDuration(videoId, lengthText);
+  }
+
+  const fromSeconds = formatDurationFromSeconds(renderer.lengthSeconds);
+  if (fromSeconds) {
+    rememberDuration(videoId, fromSeconds);
+  }
+
   for (const url of candidates) {
     if (url) {
       rememberAvatar(videoId, url);
@@ -187,6 +388,16 @@ function indexLockupViewModel(viewModel) {
   )?.content;
   if (typeof channelText === "string") {
     rememberChannel(videoId, channelText);
+  }
+
+  const durationFromOverlays = extractDurationFromLockupOverlays(viewModel);
+  if (durationFromOverlays) {
+    rememberDuration(videoId, durationFromOverlays);
+  } else {
+    const durationText = findDurationTextInNode(viewModel);
+    if (durationText) {
+      rememberDuration(videoId, durationText);
+    }
   }
 }
 
@@ -329,6 +540,7 @@ function initAvatarCache() {
     avatarByVideoId.clear();
     avatarsByVideoId.clear();
     channelByVideoId.clear();
+    durationByVideoId.clear();
     ingestYtInitialDataFromScripts();
   });
 
@@ -365,6 +577,15 @@ function getChannelForVideo(videoId) {
 }
 
 /**
+ * @param {string | null | undefined} videoId
+ * @returns {string | null}
+ */
+function getDurationForVideo(videoId) {
+  if (!videoId) return null;
+  return durationByVideoId.get(videoId) ?? null;
+}
+
+/**
  * @param {() => void} callback
  */
 function onAvatarCacheUpdate(callback) {
@@ -378,5 +599,6 @@ window.AttentionShieldAvatarCache = {
   getAvatarForVideo,
   getAvatarsForVideo,
   getChannelForVideo,
+  getDurationForVideo,
   onAvatarCacheUpdate,
 };

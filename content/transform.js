@@ -399,20 +399,7 @@ function buildCardElement(metadata) {
   channelSpan.className = "as-channel";
   channelSpan.textContent = metadata.channel;
 
-  const stats = document.createElement("div");
-  stats.className = "as-stats";
-
-  if (metadata.duration) {
-    const durationSpan = document.createElement("span");
-    durationSpan.className = "as-duration";
-    durationSpan.textContent = metadata.duration;
-    stats.appendChild(durationSpan);
-  }
-
   metaCol.appendChild(channelSpan);
-  if (stats.childNodes.length > 0) {
-    metaCol.appendChild(stats);
-  }
 
   footer.appendChild(avatarLink);
   footer.appendChild(metaCol);
@@ -449,10 +436,28 @@ function buildCardElement(metadata) {
 
   card.appendChild(titleLink);
 
-  if (metadata.views) {
+  if (metadata.views || metadata.duration) {
     const viewsEl = document.createElement("div");
     viewsEl.className = "as-views-prominent";
-    viewsEl.textContent = metadata.views;
+
+    if (metadata.views) {
+      const viewsSpan = document.createElement("span");
+      viewsSpan.className = "as-views-text";
+      viewsSpan.textContent = metadata.views;
+      viewsEl.appendChild(viewsSpan);
+    }
+
+    if (metadata.views && metadata.duration) {
+      viewsEl.appendChild(createSeparator());
+    }
+
+    if (metadata.duration) {
+      const durationSpan = document.createElement("span");
+      durationSpan.className = "as-duration-prominent";
+      durationSpan.textContent = metadata.duration;
+      viewsEl.appendChild(durationSpan);
+    }
+
     card.appendChild(viewsEl);
   }
 
@@ -471,6 +476,73 @@ function createSeparator() {
   sep.textContent = "·";
   sep.setAttribute("aria-hidden", "true");
   return sep;
+}
+
+/**
+ * @param {HTMLElement} cardEl
+ * @param {string} duration
+ */
+function applyDurationToCard(cardEl, duration) {
+  if (!duration || cardEl.querySelector(".as-duration-prominent")) return;
+
+  let statsEl = cardEl.querySelector(".as-views-prominent");
+  if (!statsEl) {
+    statsEl = document.createElement("div");
+    statsEl.className = "as-views-prominent";
+    const footer = cardEl.querySelector(".as-footer");
+    if (footer) {
+      cardEl.insertBefore(statsEl, footer);
+    } else {
+      cardEl.appendChild(statsEl);
+    }
+  }
+
+  if (statsEl.querySelector(".as-views-text")) {
+    statsEl.appendChild(createSeparator());
+  }
+
+  const durationSpan = document.createElement("span");
+  durationSpan.className = "as-duration-prominent";
+  durationSpan.textContent = duration;
+  statsEl.appendChild(durationSpan);
+}
+
+/**
+ * @param {Element} card
+ * @param {HTMLElement} cardEl
+ * @param {Element} contentRoot
+ * @param {string} videoId
+ */
+function scheduleDurationUpgrade(card, cardEl, contentRoot, videoId) {
+  if (cardEl.querySelector(".as-duration-prominent")) return;
+
+  const tryUpgrade = () => {
+    const duration = window.AttentionShieldExtractors.findDuration(card, videoId);
+    if (!duration) return false;
+    applyDurationToCard(cardEl, duration);
+    return true;
+  };
+
+  if (tryUpgrade()) return;
+
+  const observer = new MutationObserver(() => {
+    if (tryUpgrade()) {
+      observer.disconnect();
+    }
+  });
+
+  observer.observe(contentRoot, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["aria-label", "title"],
+    characterData: true,
+  });
+
+  window.setTimeout(() => {
+    observer.disconnect();
+    tryUpgrade();
+  }, 5000);
 }
 
 /**
@@ -563,6 +635,10 @@ function injectCard(card, metadata) {
   card.appendChild(cardEl);
 
   if (contentRoot !== card) {
+    if (!metadata.duration) {
+      scheduleDurationUpgrade(card, cardEl, contentRoot, metadata.videoId);
+    }
+
     if (!metadata.avatarUrl && !metadata.avatarUrls?.length) {
       scheduleAvatarUpgrade(
         card,
@@ -639,7 +715,7 @@ function upgradePendingAvatars() {
   const cards = document.querySelectorAll("[data-attention-shield]");
   for (const card of cards) {
     const asCard = card.querySelector(":scope > .as-card");
-    if (!asCard?.querySelector(".as-avatar-fallback")) continue;
+    if (!asCard) continue;
 
     const channel =
       asCard.querySelector(".as-channel")?.textContent?.trim() || "";
@@ -652,6 +728,8 @@ function upgradePendingAvatars() {
     const urls = window.AttentionShieldExtractors.findAvatarUrls(card, videoId);
     const cachedChannel =
       window.AttentionShieldAvatarCache?.getChannelForVideo(videoId) || "";
+    const cachedDuration =
+      window.AttentionShieldAvatarCache?.getDurationForVideo(videoId) || "";
     const channelEl = asCard.querySelector(".as-channel");
 
     if (channelEl && cachedChannel) {
@@ -660,14 +738,23 @@ function upgradePendingAvatars() {
 
     const displayChannel = cachedChannel || channel;
 
-    if (!urls.length) continue;
+    if (asCard.querySelector(".as-avatar-fallback") && urls.length) {
+      const avatarLink = asCard.querySelector(".as-avatar");
+      if (avatarLink) {
+        if (urls.length > 1) {
+          applyAvatarStack(avatarLink, urls, displayChannel);
+        } else {
+          applyAvatarImage(avatarLink, urls[0], displayChannel);
+        }
+      }
+    }
 
-    const avatarLink = asCard.querySelector(".as-avatar");
-    if (avatarLink) {
-      if (urls.length > 1) {
-        applyAvatarStack(avatarLink, urls, displayChannel);
-      } else {
-        applyAvatarImage(avatarLink, urls[0], displayChannel);
+    if (!asCard.querySelector(".as-duration-prominent")) {
+      const duration =
+        cachedDuration ||
+        window.AttentionShieldExtractors.findDuration(card, videoId);
+      if (duration) {
+        applyDurationToCard(asCard, duration);
       }
     }
 
