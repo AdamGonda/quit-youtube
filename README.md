@@ -43,6 +43,22 @@ After editing files, reload the extension on `chrome://extensions` and refresh Y
 
 YouTube's DOM changes frequently. If cards stop transforming, update selectors in `content/extractors.js`.
 
+```bash
+npm run validate   # check manifest + required files
+npm run package    # build dist/quit-youtube-vX.Y.Z.zip for the Chrome Web Store
+```
+
+## Release to Chrome Web Store
+
+See **[RELEASE.md](./RELEASE.md)** for the full checklist. Store listing copy is in **[STORE_LISTING.md](./STORE_LISTING.md)**. Privacy policy: **[PRIVACY.md](./PRIVACY.md)**.
+
+Quick path:
+
+1. `npm run version:patch` (or minor/major)
+2. `npm run package`
+3. Upload `dist/quit-youtube-v*.zip` at the [developer dashboard](https://chrome.google.com/webstore/devconsole)
+4. `git tag vX.Y.Z && git push --tags` — GitHub Actions attaches the ZIP to the release
+
 ## Permissions
 
 - `storage` — saves the on/off toggle preference

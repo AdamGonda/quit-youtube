@@ -1,0 +1,13 @@
+{
+  "name": "quit-youtube",
+  "private": true,
+  "description": "Read YouTube like an article — no thumbnails, no autoplay.",
+  "scripts": {
+    "package": "bash scripts/package.sh",
+    "validate": "bash scripts/validate.sh",
+    "version:patch": "bash scripts/bump-version.sh patch",
+    "version:minor": "bash scripts/bump-version.sh minor",
+    "version:major": "bash scripts/bump-version.sh major",
+    "store-assets": "bash scripts/prepare-store-assets.sh"
+  }
+}
