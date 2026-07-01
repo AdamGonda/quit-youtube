@@ -9,7 +9,10 @@ let openArticleCard = null;
 let escapeListenerAttached = false;
 
 /** @type {HTMLElement | null} */
-let articleCloseBar = null;
+let articleModal = null;
+
+/** @type {number} */
+let savedScrollTop = 0;
 
 /**
  * @param {Element} card
@@ -255,13 +258,72 @@ function renderArticleBody(bodyEl, blocks) {
 }
 
 /**
- * @param {Element} card
+ * @returns {Element}
  */
-function mountArticleCloseBar(card) {
-  unmountArticleCloseBar();
+function getScrollContainer() {
+  const ytdApp = document.querySelector("ytd-app");
+  if (
+    ytdApp instanceof HTMLElement &&
+    ytdApp.scrollHeight > ytdApp.clientHeight + 1
+  ) {
+    return ytdApp;
+  }
 
-  const bar = document.createElement("div");
-  bar.className = "as-article-close-bar";
+  return document.scrollingElement || document.documentElement;
+}
+
+function lockFeedScroll() {
+  const container = getScrollContainer();
+  savedScrollTop =
+    container === document.documentElement ||
+    container === document.scrollingElement
+      ? window.scrollY
+      : container.scrollTop;
+  document.documentElement.classList.add("as-article-modal-open");
+}
+
+function unlockFeedScroll() {
+  document.documentElement.classList.remove("as-article-modal-open");
+
+  const container = getScrollContainer();
+  if (
+    container === document.documentElement ||
+    container === document.scrollingElement
+  ) {
+    window.scrollTo(0, savedScrollTop);
+    return;
+  }
+
+  if (container instanceof HTMLElement) {
+    container.scrollTop = savedScrollTop;
+  }
+}
+
+/**
+ * @param {Element} card
+ * @param {VideoMetadata} metadata
+ * @returns {{ bodyEl: HTMLElement, titleEl: HTMLElement }}
+ */
+function mountArticleModal(card, metadata) {
+  unmountArticleModal();
+
+  const modal = document.createElement("div");
+  modal.className = "as-article-modal";
+  modal.setAttribute("role", "dialog");
+  modal.setAttribute("aria-modal", "true");
+  modal.setAttribute("aria-labelledby", "as-article-modal-title");
+
+  const backdrop = document.createElement("div");
+  backdrop.className = "as-article-modal-backdrop";
+  backdrop.addEventListener("click", () => {
+    closeArticle(card);
+  });
+
+  const panel = document.createElement("div");
+  panel.className = "as-article-modal-panel";
+
+  const closeBar = document.createElement("div");
+  closeBar.className = "as-article-close-bar";
 
   const closeButton = document.createElement("button");
   closeButton.type = "button";
@@ -271,29 +333,59 @@ function mountArticleCloseBar(card) {
   closeButton.addEventListener("click", () => {
     closeArticle(card);
   });
+  closeBar.appendChild(closeButton);
 
-  bar.appendChild(closeButton);
-  document.body.appendChild(bar);
-  articleCloseBar = bar;
+  const article = document.createElement("article");
+  article.className = "as-article";
+
+  const articleHeader = document.createElement("header");
+  articleHeader.className = "as-article-header";
+
+  const articleTitle = document.createElement("h2");
+  articleTitle.id = "as-article-modal-title";
+  articleTitle.className = "as-article-title";
+  articleTitle.textContent = metadata.title;
+
+  const articleChannel = document.createElement("p");
+  articleChannel.className = "as-article-channel";
+  articleChannel.textContent = metadata.channel;
+
+  articleHeader.appendChild(articleTitle);
+  articleHeader.appendChild(articleChannel);
+
+  const articleBody = document.createElement("div");
+  articleBody.className = "as-article-body";
+
+  article.appendChild(articleHeader);
+  article.appendChild(articleBody);
+
+  panel.appendChild(closeBar);
+  panel.appendChild(article);
+  modal.appendChild(backdrop);
+  modal.appendChild(panel);
+  document.body.appendChild(modal);
+  articleModal = modal;
+
+  return { bodyEl: articleBody, titleEl: articleTitle };
 }
 
-function unmountArticleCloseBar() {
-  articleCloseBar?.remove();
-  articleCloseBar = null;
-  document.querySelector(".as-article-close-bar")?.remove();
-  document.querySelector(".as-article-close-fab")?.remove();
-  document.querySelector(".as-article-scroll-top")?.remove();
+function unmountArticleModal() {
+  articleModal?.remove();
+  articleModal = null;
+  document.querySelector(".as-article-modal")?.remove();
 }
 
 /**
  * @param {Element} card
  */
-function closeArticle(card) {
+/**
+ * @param {Element} card
+ * @param {{ restoreScroll?: boolean }} [options]
+ */
+function closeArticle(card, options = {}) {
+  const { restoreScroll = true } = options;
   const cardEl = card.querySelector(":scope > .as-card");
   if (!cardEl) return;
-
-  cardEl.classList.remove("as-article-open");
-  card.removeAttribute("data-attention-shield-article");
 
   const titleLink = cardEl.querySelector(".as-title");
   if (titleLink instanceof HTMLAnchorElement) {
@@ -303,7 +395,10 @@ function closeArticle(card) {
 
   if (openArticleCard === card) {
     openArticleCard = null;
-    unmountArticleCloseBar();
+    unmountArticleModal();
+    if (restoreScroll) {
+      unlockFeedScroll();
+    }
   }
 }
 
@@ -332,17 +427,15 @@ async function openArticle(card, metadata) {
   if (!cardEl) return;
 
   if (openArticleCard && openArticleCard !== card) {
-    closeArticle(openArticleCard);
+    closeArticle(openArticleCard, { restoreScroll: false });
+  } else if (!openArticleCard) {
+    lockFeedScroll();
   }
 
   ensureEscapeListener();
 
-  cardEl.classList.add("as-article-open");
-  card.setAttribute("data-attention-shield-article", "1");
   openArticleCard = card;
-  mountArticleCloseBar(card);
-
-  card.scrollIntoView({ behavior: "smooth", block: "start" });
+  const { bodyEl: articleBody } = mountArticleModal(card, metadata);
 
   const titleLink = cardEl.querySelector(".as-title");
   if (titleLink instanceof HTMLAnchorElement) {
@@ -350,25 +443,13 @@ async function openArticle(card, metadata) {
     titleLink.classList.add("as-title-loading");
   }
 
-  const articleHeaderTitle = cardEl.querySelector(".as-article-title");
-  const articleHeaderChannel = cardEl.querySelector(".as-article-channel");
-  const articleBody = cardEl.querySelector(".as-article-body");
-
-  if (articleHeaderTitle) {
-    articleHeaderTitle.textContent = metadata.title;
-  }
-  if (articleHeaderChannel) {
-    articleHeaderChannel.textContent = metadata.channel;
-  }
-  if (articleBody instanceof HTMLElement) {
-    setArticleBodyMessage(articleBody, "Loading transcript…", false);
-  }
+  setArticleBodyMessage(articleBody, "Loading transcript…", false);
 
   const segments = await window.AttentionShieldTranscripts.fetchTranscript(
     metadata.videoId
   );
 
-  if (!cardEl.classList.contains("as-article-open")) {
+  if (openArticleCard !== card) {
     return;
   }
 
@@ -377,14 +458,8 @@ async function openArticle(card, metadata) {
     titleLink.classList.remove("as-title-loading");
   }
 
-  if (!(articleBody instanceof HTMLElement)) return;
-
   if (!segments?.length) {
-    setArticleBodyMessage(
-      articleBody,
-      "No transcript available",
-      true
-    );
+    setArticleBodyMessage(articleBody, "No transcript available", true);
     return;
   }
 
@@ -393,18 +468,11 @@ async function openArticle(card, metadata) {
   );
 
   if (!paragraphs.length) {
-    setArticleBodyMessage(
-      articleBody,
-      "No transcript available",
-      true
-    );
+    setArticleBodyMessage(articleBody, "No transcript available", true);
     return;
   }
 
   renderArticleBody(articleBody, paragraphs);
-  if (openArticleCard === card) {
-    mountArticleCloseBar(card);
-  }
 }
 
 /**
@@ -461,29 +529,6 @@ function buildCardElement(metadata) {
   footer.appendChild(avatarLink);
   footer.appendChild(metaCol);
 
-  const article = document.createElement("article");
-  article.className = "as-article";
-
-  const articleHeader = document.createElement("header");
-  articleHeader.className = "as-article-header";
-
-  const articleTitle = document.createElement("h2");
-  articleTitle.className = "as-article-title";
-  articleTitle.textContent = metadata.title;
-
-  const articleChannel = document.createElement("p");
-  articleChannel.className = "as-article-channel";
-  articleChannel.textContent = metadata.channel;
-
-  articleHeader.appendChild(articleTitle);
-  articleHeader.appendChild(articleChannel);
-
-  const articleBody = document.createElement("div");
-  articleBody.className = "as-article-body";
-
-  article.appendChild(articleHeader);
-  article.appendChild(articleBody);
-
   card.appendChild(titleLink);
 
   if (metadata.views || metadata.duration) {
@@ -512,7 +557,6 @@ function buildCardElement(metadata) {
   }
 
   card.appendChild(footer);
-  card.appendChild(article);
 
   return card;
 }
@@ -735,10 +779,10 @@ function transformCard(card) {
 function restoreCard(card) {
   if (openArticleCard === card) {
     openArticleCard = null;
-    unmountArticleCloseBar();
+    unmountArticleModal();
+    unlockFeedScroll();
   }
 
-  card.removeAttribute("data-attention-shield-article");
   card.removeAttribute("data-video-id");
 
   const injected = card.querySelector(":scope > .as-card");
@@ -821,7 +865,8 @@ function upgradePendingAvatars() {
 function restoreAllCards(root = document) {
   if (openArticleCard) {
     openArticleCard = null;
-    unmountArticleCloseBar();
+    unmountArticleModal();
+    unlockFeedScroll();
   }
 
   const cards = root.querySelectorAll("[data-attention-shield]");
