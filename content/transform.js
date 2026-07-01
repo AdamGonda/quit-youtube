@@ -415,8 +415,8 @@ function wireArticleModalScroll(
   const updateFromScroll = () => {
     const barHeight = closeBar.offsetHeight;
     const panelTop = panel.getBoundingClientRect().top;
-    const titleTop = articleTitle.getBoundingClientRect().top;
-    const showStickyTitle = titleTop < panelTop + barHeight;
+    const titleRect = articleTitle.getBoundingClientRect();
+    const showStickyTitle = titleRect.bottom <= panelTop + barHeight;
 
     closeBarTitle.hidden = !showStickyTitle;
     closeBar.classList.toggle("as-article-close-bar-title-shown", showStickyTitle);
