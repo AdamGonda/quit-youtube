@@ -346,12 +346,54 @@ function mountArticleModal(card, metadata) {
   articleTitle.className = "as-article-title";
   articleTitle.textContent = metadata.title;
 
-  const articleChannel = document.createElement("p");
+  const articleMeta = document.createElement("div");
+  articleMeta.className = "as-article-meta";
+
+  const avatarLink = document.createElement("a");
+  avatarLink.className = "as-avatar";
+  avatarLink.href = metadata.channelHref || "#";
+  avatarLink.setAttribute("aria-label", metadata.channel);
+  avatarLink.title = metadata.channel;
+  applyAvatars(avatarLink, metadata);
+
+  const metaCol = document.createElement("div");
+  metaCol.className = "as-article-meta-col";
+
+  const articleChannel = document.createElement("span");
   articleChannel.className = "as-article-channel";
   articleChannel.textContent = metadata.channel;
+  metaCol.appendChild(articleChannel);
+
+  if (metadata.views || metadata.duration) {
+    const statsEl = document.createElement("div");
+    statsEl.className = "as-article-stats";
+
+    if (metadata.views) {
+      const viewsSpan = document.createElement("span");
+      viewsSpan.className = "as-views-text";
+      viewsSpan.textContent = metadata.views;
+      statsEl.appendChild(viewsSpan);
+    }
+
+    if (metadata.views && metadata.duration) {
+      statsEl.appendChild(createSeparator());
+    }
+
+    if (metadata.duration) {
+      const durationSpan = document.createElement("span");
+      durationSpan.className = "as-duration-prominent";
+      durationSpan.textContent = metadata.duration;
+      statsEl.appendChild(durationSpan);
+    }
+
+    metaCol.appendChild(statsEl);
+  }
+
+  articleMeta.appendChild(avatarLink);
+  articleMeta.appendChild(metaCol);
 
   articleHeader.appendChild(articleTitle);
-  articleHeader.appendChild(articleChannel);
+  articleHeader.appendChild(articleMeta);
 
   const articleBody = document.createElement("div");
   articleBody.className = "as-article-body";
@@ -434,8 +476,11 @@ async function openArticle(card, metadata) {
 
   ensureEscapeListener();
 
+  const displayMetadata =
+    window.AttentionShieldExtractors.extractVideoMetadata(card) || metadata;
+
   openArticleCard = card;
-  const { bodyEl: articleBody } = mountArticleModal(card, metadata);
+  const { bodyEl: articleBody } = mountArticleModal(card, displayMetadata);
 
   const titleLink = cardEl.querySelector(".as-title");
   if (titleLink instanceof HTMLAnchorElement) {
