@@ -1,4 +1,4 @@
-# Attention Shield
+# Quit YouTube
 
 A Chrome extension that replaces YouTube's thumbnail-heavy feeds with a clean, text-only reading list. Each video row shows the channel avatar, title, channel name, view count, and duration.
 
@@ -16,12 +16,12 @@ A Chrome extension that replaces YouTube's thumbnail-heavy feeds with a clean, t
 1. Open Chrome and go to `chrome://extensions`
 2. Enable **Developer mode** (top right)
 3. Click **Load unpacked**
-4. Select this folder (`attention-shield`)
+4. Select this folder (`quit-youtube`)
 5. Open [youtube.com](https://www.youtube.com) — the feed should transform automatically
 
 ## Usage
 
-- Click the Attention Shield icon in the toolbar to toggle text-only mode on or off
+- Click the Quit YouTube icon in the toolbar to toggle text-only mode on or off
 - Click a **title** to open the transcript as a readable article (stays on the feed)
 - Click **Close** or press Escape to return to the compact card
 - Click the **channel avatar** to open the channel page
@@ -29,7 +29,7 @@ A Chrome extension that replaces YouTube's thumbnail-heavy feeds with a clean, t
 ## Project Structure
 
 ```
-attention-shield/
+quit-youtube/
 ├── manifest.json
 ├── popup/           # Enable/disable toggle
 ├── content/         # Content scripts (extraction, transform, observer)

@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Attention Shield",
+  "name": "Quit YouTube",
   "version": "1.1.0",
   "description": "Replace YouTube thumbnails with a clean text-only feed showing channel avatar, title, views, and duration.",
   "permissions": ["storage"],
