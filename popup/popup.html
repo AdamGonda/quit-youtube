@@ -19,10 +19,24 @@
         color: #f1f1f1;
       }
 
+      .header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 4px;
+      }
+
+      .logo {
+        width: 32px;
+        height: 32px;
+        flex-shrink: 0;
+        border-radius: 7px;
+      }
+
       h1 {
         font-size: 16px;
         font-weight: 600;
-        margin-bottom: 4px;
+        margin-bottom: 0;
       }
 
       p {
@@ -84,8 +98,11 @@
     </style>
   </head>
   <body>
-    <h1>Quit YouTube</h1>
-    <p>Hide video thumbnails on YouTube. Show titles, channel avatars, views, and duration only.</p>
+    <div class="header">
+      <img class="logo" src="../icons/icon48.png" width="32" height="32" alt="" />
+      <h1>Quit YouTube</h1>
+    </div>
+    <p>Read videos like an article without thumbnails.</p>
     <label>
       Text-only mode
       <span class="toggle">

@@ -1,6 +1,6 @@
 # Quit YouTube
 
-A Chrome extension that replaces YouTube's thumbnail-heavy feeds with a clean, text-only reading list. Each video row shows the channel avatar, title, channel name, view count, and duration.
+**Take back your attention.** YouTube without thumbnails—read any video's transcript like an article.
 
 ## Features
 
@@ -34,7 +34,7 @@ quit-youtube/
 ├── popup/           # Enable/disable toggle
 ├── content/         # Content scripts (extraction, transform, observer)
 ├── styles/          # Text-only card layout CSS
-└── icons/
+└── icons/           # icon.svg source + 16/48/128 PNGs
 ```
 
 ## Development
