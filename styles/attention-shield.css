@@ -362,10 +362,29 @@ html.attention-shield-active .as-article-close-bar {
   justify-content: flex-end;
   align-items: center;
   gap: 16px;
-  padding: 10px 24px;
+  padding: 10px 24px 13px;
   background: var(--yt-spec-base-background, #0f0f0f);
   border-bottom: 1px solid var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.08));
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+}
+
+html.attention-shield-active .as-article-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.12));
+  pointer-events: none;
+}
+
+html.attention-shield-active .as-article-progress-fill {
+  height: 100%;
+  width: 100%;
+  transform: scaleX(0);
+  transform-origin: left center;
+  background: var(--yt-spec-call-to-action, #3ea6ff);
+  will-change: transform;
 }
 
 html.attention-shield-active .as-article-close-bar.as-article-close-bar-title-shown {
@@ -627,6 +646,14 @@ html.attention-shield-active .as-title[aria-disabled="true"] {
     background: #fff;
     border-bottom-color: rgba(0, 0, 0, 0.08);
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  html.attention-shield-active .as-article-progress {
+    background: rgba(0, 0, 0, 0.08);
+  }
+
+  html.attention-shield-active .as-article-progress-fill {
+    background: #065fd4;
   }
 
   html.attention-shield-active .as-article-title {

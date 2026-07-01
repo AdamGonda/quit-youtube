@@ -11,8 +11,11 @@ let escapeListenerAttached = false;
 /** @type {HTMLElement | null} */
 let articleModal = null;
 
-/** @type {IntersectionObserver | null} */
-let articleTitleObserver = null;
+/** @type {((event: Event) => void) | null} */
+let articleModalScrollHandler = null;
+
+/** @type {HTMLElement | null} */
+let articleModalPanel = null;
 
 /** @type {number} */
 let savedScrollTop = 0;
@@ -328,6 +331,18 @@ function mountArticleModal(card, metadata) {
   const closeBar = document.createElement("div");
   closeBar.className = "as-article-close-bar";
 
+  const progressBar = document.createElement("div");
+  progressBar.className = "as-article-progress";
+  progressBar.setAttribute("role", "progressbar");
+  progressBar.setAttribute("aria-valuemin", "0");
+  progressBar.setAttribute("aria-valuemax", "100");
+  progressBar.setAttribute("aria-valuenow", "0");
+  progressBar.setAttribute("aria-label", "Reading progress");
+
+  const progressFill = document.createElement("div");
+  progressFill.className = "as-article-progress-fill";
+  progressBar.appendChild(progressFill);
+
   const closeBarTitle = document.createElement("p");
   closeBarTitle.className = "as-article-close-bar-title";
   closeBarTitle.textContent = metadata.title;
@@ -343,6 +358,7 @@ function mountArticleModal(card, metadata) {
   });
   closeBar.appendChild(closeBarTitle);
   closeBar.appendChild(closeButton);
+  closeBar.appendChild(progressBar);
 
   const article = document.createElement("article");
   article.className = "as-article";
@@ -371,7 +387,7 @@ function mountArticleModal(card, metadata) {
   document.body.appendChild(modal);
   articleModal = modal;
 
-  wireCloseBarTitleVisibility(panel, articleTitle, closeBar, closeBarTitle);
+  wireArticleModalScroll(panel, articleTitle, closeBar, closeBarTitle, progressBar, progressFill);
 
   return { bodyEl: articleBody, titleEl: articleTitle };
 }
@@ -381,29 +397,56 @@ function mountArticleModal(card, metadata) {
  * @param {HTMLElement} articleTitle
  * @param {HTMLElement} closeBar
  * @param {HTMLElement} closeBarTitle
+ * @param {HTMLElement} progressBar
+ * @param {HTMLElement} progressFill
  */
-function wireCloseBarTitleVisibility(panel, articleTitle, closeBar, closeBarTitle) {
-  articleTitleObserver?.disconnect();
+function wireArticleModalScroll(
+  panel,
+  articleTitle,
+  closeBar,
+  closeBarTitle,
+  progressBar,
+  progressFill
+) {
+  if (articleModalScrollHandler && articleModalPanel) {
+    articleModalPanel.removeEventListener("scroll", articleModalScrollHandler);
+  }
 
-  const update = (showStickyTitle) => {
+  const updateFromScroll = () => {
+    const barHeight = closeBar.offsetHeight;
+    const panelTop = panel.getBoundingClientRect().top;
+    const titleTop = articleTitle.getBoundingClientRect().top;
+    const showStickyTitle = titleTop < panelTop + barHeight;
+
     closeBarTitle.hidden = !showStickyTitle;
     closeBar.classList.toggle("as-article-close-bar-title-shown", showStickyTitle);
+
+    const scrollable = panel.scrollHeight - panel.clientHeight;
+    const progress =
+      scrollable > 0
+        ? Math.min(1, Math.max(0, panel.scrollTop / scrollable))
+        : 0;
+
+    progressFill.style.transform = `scaleX(${progress})`;
+    progressBar.setAttribute("aria-valuenow", String(Math.round(progress * 100)));
   };
 
-  update(false);
+  updateFromScroll();
+  articleModalScrollHandler = updateFromScroll;
+  articleModalPanel = panel;
+  panel.addEventListener("scroll", updateFromScroll, { passive: true });
+}
 
-  articleTitleObserver = new IntersectionObserver(
-    ([entry]) => {
-      update(!entry.isIntersecting);
-    },
-    { root: panel, threshold: 0 }
-  );
-  articleTitleObserver.observe(articleTitle);
+function refreshArticleModalScroll() {
+  articleModalPanel?.dispatchEvent(new Event("scroll"));
 }
 
 function unmountArticleModal() {
-  articleTitleObserver?.disconnect();
-  articleTitleObserver = null;
+  if (articleModalScrollHandler && articleModalPanel) {
+    articleModalPanel.removeEventListener("scroll", articleModalScrollHandler);
+  }
+  articleModalScrollHandler = null;
+  articleModalPanel = null;
   articleModal?.remove();
   articleModal = null;
   document.querySelector(".as-article-modal")?.remove();
@@ -497,6 +540,7 @@ async function openArticle(card, metadata) {
 
   if (!segments?.length) {
     setArticleBodyMessage(articleBody, "No transcript available", true);
+    refreshArticleModalScroll();
     return;
   }
 
@@ -506,10 +550,12 @@ async function openArticle(card, metadata) {
 
   if (!paragraphs.length) {
     setArticleBodyMessage(articleBody, "No transcript available", true);
+    refreshArticleModalScroll();
     return;
   }
 
   renderArticleBody(articleBody, paragraphs);
+  refreshArticleModalScroll();
 }
 
 /**
