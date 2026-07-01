@@ -11,6 +11,9 @@ let escapeListenerAttached = false;
 /** @type {HTMLElement | null} */
 let articleModal = null;
 
+/** @type {IntersectionObserver | null} */
+let articleTitleObserver = null;
+
 /** @type {number} */
 let savedScrollTop = 0;
 
@@ -325,6 +328,11 @@ function mountArticleModal(card, metadata) {
   const closeBar = document.createElement("div");
   closeBar.className = "as-article-close-bar";
 
+  const closeBarTitle = document.createElement("p");
+  closeBarTitle.className = "as-article-close-bar-title";
+  closeBarTitle.textContent = metadata.title;
+  closeBarTitle.title = metadata.title;
+
   const closeButton = document.createElement("button");
   closeButton.type = "button";
   closeButton.className = "as-article-close";
@@ -333,6 +341,7 @@ function mountArticleModal(card, metadata) {
   closeButton.addEventListener("click", () => {
     closeArticle(card);
   });
+  closeBar.appendChild(closeBarTitle);
   closeBar.appendChild(closeButton);
 
   const article = document.createElement("article");
@@ -346,54 +355,8 @@ function mountArticleModal(card, metadata) {
   articleTitle.className = "as-article-title";
   articleTitle.textContent = metadata.title;
 
-  const articleMeta = document.createElement("div");
-  articleMeta.className = "as-article-meta";
-
-  const avatarLink = document.createElement("a");
-  avatarLink.className = "as-avatar";
-  avatarLink.href = metadata.channelHref || "#";
-  avatarLink.setAttribute("aria-label", metadata.channel);
-  avatarLink.title = metadata.channel;
-  applyAvatars(avatarLink, metadata);
-
-  const metaCol = document.createElement("div");
-  metaCol.className = "as-article-meta-col";
-
-  const articleChannel = document.createElement("span");
-  articleChannel.className = "as-article-channel";
-  articleChannel.textContent = metadata.channel;
-  metaCol.appendChild(articleChannel);
-
-  if (metadata.views || metadata.duration) {
-    const statsEl = document.createElement("div");
-    statsEl.className = "as-article-stats";
-
-    if (metadata.views) {
-      const viewsSpan = document.createElement("span");
-      viewsSpan.className = "as-views-text";
-      viewsSpan.textContent = metadata.views;
-      statsEl.appendChild(viewsSpan);
-    }
-
-    if (metadata.views && metadata.duration) {
-      statsEl.appendChild(createSeparator());
-    }
-
-    if (metadata.duration) {
-      const durationSpan = document.createElement("span");
-      durationSpan.className = "as-duration-prominent";
-      durationSpan.textContent = metadata.duration;
-      statsEl.appendChild(durationSpan);
-    }
-
-    metaCol.appendChild(statsEl);
-  }
-
-  articleMeta.appendChild(avatarLink);
-  articleMeta.appendChild(metaCol);
-
   articleHeader.appendChild(articleTitle);
-  articleHeader.appendChild(articleMeta);
+  articleHeader.appendChild(buildMetaRow(metadata));
 
   const articleBody = document.createElement("div");
   articleBody.className = "as-article-body";
@@ -408,10 +371,39 @@ function mountArticleModal(card, metadata) {
   document.body.appendChild(modal);
   articleModal = modal;
 
+  wireCloseBarTitleVisibility(panel, articleTitle, closeBar, closeBarTitle);
+
   return { bodyEl: articleBody, titleEl: articleTitle };
 }
 
+/**
+ * @param {HTMLElement} panel
+ * @param {HTMLElement} articleTitle
+ * @param {HTMLElement} closeBar
+ * @param {HTMLElement} closeBarTitle
+ */
+function wireCloseBarTitleVisibility(panel, articleTitle, closeBar, closeBarTitle) {
+  articleTitleObserver?.disconnect();
+
+  const update = (showStickyTitle) => {
+    closeBarTitle.hidden = !showStickyTitle;
+    closeBar.classList.toggle("as-article-close-bar-title-shown", showStickyTitle);
+  };
+
+  update(false);
+
+  articleTitleObserver = new IntersectionObserver(
+    ([entry]) => {
+      update(!entry.isIntersecting);
+    },
+    { root: panel, threshold: 0 }
+  );
+  articleTitleObserver.observe(articleTitle);
+}
+
 function unmountArticleModal() {
+  articleTitleObserver?.disconnect();
+  articleTitleObserver = null;
   articleModal?.remove();
   articleModal = null;
   document.querySelector(".as-article-modal")?.remove();
@@ -551,59 +543,63 @@ function buildCardElement(metadata) {
   titleLink.title = metadata.title;
   titleLink.setAttribute("role", "button");
 
-  const footer = document.createElement("div");
-  footer.className = "as-footer";
+  card.appendChild(titleLink);
+  card.appendChild(buildMetaRow(metadata));
+
+  return card;
+}
+
+/**
+ * @param {VideoMetadata} metadata
+ * @returns {HTMLDivElement}
+ */
+function buildMetaRow(metadata) {
+  const meta = document.createElement("div");
+  meta.className = "as-meta";
 
   const avatarLink = document.createElement("a");
   avatarLink.className = "as-avatar";
   avatarLink.href = metadata.channelHref || "#";
   avatarLink.setAttribute("aria-label", metadata.channel);
   avatarLink.title = metadata.channel;
-
   applyAvatars(avatarLink, metadata);
 
   const metaCol = document.createElement("div");
   metaCol.className = "as-meta-col";
 
   const channelSpan = document.createElement("span");
-  channelSpan.className = "as-channel";
+  channelSpan.className = "as-meta-channel";
   channelSpan.textContent = metadata.channel;
-
   metaCol.appendChild(channelSpan);
 
-  footer.appendChild(avatarLink);
-  footer.appendChild(metaCol);
-
-  card.appendChild(titleLink);
-
   if (metadata.views || metadata.duration) {
-    const viewsEl = document.createElement("div");
-    viewsEl.className = "as-views-prominent";
+    const statsEl = document.createElement("div");
+    statsEl.className = "as-meta-stats";
 
     if (metadata.views) {
       const viewsSpan = document.createElement("span");
       viewsSpan.className = "as-views-text";
       viewsSpan.textContent = metadata.views;
-      viewsEl.appendChild(viewsSpan);
+      statsEl.appendChild(viewsSpan);
     }
 
     if (metadata.views && metadata.duration) {
-      viewsEl.appendChild(createSeparator());
+      statsEl.appendChild(createSeparator());
     }
 
     if (metadata.duration) {
       const durationSpan = document.createElement("span");
       durationSpan.className = "as-duration-prominent";
       durationSpan.textContent = metadata.duration;
-      viewsEl.appendChild(durationSpan);
+      statsEl.appendChild(durationSpan);
     }
 
-    card.appendChild(viewsEl);
+    metaCol.appendChild(statsEl);
   }
 
-  card.appendChild(footer);
-
-  return card;
+  meta.appendChild(avatarLink);
+  meta.appendChild(metaCol);
+  return meta;
 }
 
 /**
@@ -624,13 +620,13 @@ function createSeparator() {
 function applyDurationToCard(cardEl, duration) {
   if (!duration || cardEl.querySelector(".as-duration-prominent")) return;
 
-  let statsEl = cardEl.querySelector(".as-views-prominent");
+  let statsEl = cardEl.querySelector(".as-meta-stats");
   if (!statsEl) {
     statsEl = document.createElement("div");
-    statsEl.className = "as-views-prominent";
-    const footer = cardEl.querySelector(".as-footer");
-    if (footer) {
-      cardEl.insertBefore(statsEl, footer);
+    statsEl.className = "as-meta-stats";
+    const metaCol = cardEl.querySelector(".as-meta-col");
+    if (metaCol) {
+      metaCol.appendChild(statsEl);
     } else {
       cardEl.appendChild(statsEl);
     }
@@ -858,7 +854,7 @@ function upgradePendingAvatars() {
     if (!asCard) continue;
 
     const channel =
-      asCard.querySelector(".as-channel")?.textContent?.trim() || "";
+      asCard.querySelector(".as-meta-channel")?.textContent?.trim() || "";
     const watchLink = window.AttentionShieldExtractors.findWatchLink(card);
     const videoId =
       window.AttentionShieldExtractors.parseVideoId(
@@ -870,7 +866,7 @@ function upgradePendingAvatars() {
       window.AttentionShieldAvatarCache?.getChannelForVideo(videoId) || "";
     const cachedDuration =
       window.AttentionShieldAvatarCache?.getDurationForVideo(videoId) || "";
-    const channelEl = asCard.querySelector(".as-channel");
+    const channelEl = asCard.querySelector(".as-meta-channel");
 
     if (channelEl && cachedChannel) {
       channelEl.textContent = cachedChannel;
