@@ -3,7 +3,12 @@
   "name": "Quit YouTube",
   "version": "1.1.0",
   "description": "Read videos like an article without thumbnails.",
-  "permissions": ["storage"],
+  "permissions": ["storage", "contextMenus"],
+  "host_permissions": ["https://generativelanguage.googleapis.com/*"],
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": {
@@ -31,6 +36,7 @@
         "content/card-types.js",
         "content/extractors.js",
         "content/transcripts.js",
+        "content/tldr.js",
         "content/feed-cleanup.js",
         "content/transform.js",
         "content/observer.js",

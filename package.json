@@ -3,11 +3,20 @@
   "private": true,
   "description": "Read YouTube like an article — no thumbnails, no autoplay.",
   "scripts": {
+    "bundle": "esbuild background/service-worker.src.js --bundle --platform=browser --format=esm --outfile=background/service-worker.js --target=es2022",
+    "build": "bash scripts/build.sh",
     "package": "bash scripts/package.sh",
     "validate": "bash scripts/validate.sh",
     "version:patch": "bash scripts/bump-version.sh patch",
     "version:minor": "bash scripts/bump-version.sh minor",
     "version:major": "bash scripts/bump-version.sh major",
     "store-assets": "bash scripts/prepare-store-assets.sh"
+  },
+  "dependencies": {
+    "@ai-sdk/google": "^3.0.90",
+    "ai": "^6.0.116"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.3"
   }
 }

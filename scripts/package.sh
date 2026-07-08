@@ -6,38 +6,20 @@ MANIFEST="$ROOT/manifest.json"
 DIST="$ROOT/dist"
 NAME="quit-youtube"
 
-if [[ ! -f "$MANIFEST" ]]; then
-  echo "error: manifest.json not found" >&2
-  exit 1
-fi
-
 VERSION="$(
   grep -E '"version"[[:space:]]*:' "$MANIFEST" \
     | head -1 \
     | sed -E 's/.*"version"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/'
 )"
 
-if [[ -z "$VERSION" ]]; then
-  echo "error: could not read version from manifest.json" >&2
-  exit 1
-fi
-
-bash "$ROOT/scripts/validate.sh"
+bash "$ROOT/scripts/build.sh"
 
 ZIP="$DIST/${NAME}-v${VERSION}.zip"
-mkdir -p "$DIST"
 rm -f "$ZIP"
 
 (
-  cd "$ROOT"
-  zip -qr "$ZIP" \
-    manifest.json \
-    popup/ \
-    content/ \
-    styles/ \
-    icons/icon16.png \
-    icons/icon48.png \
-    icons/icon128.png
+  cd "$DIST/${NAME}-v${VERSION}"
+  zip -qr "$ZIP" .
 )
 
 echo "Created $ZIP ($(du -h "$ZIP" | cut -f1))"

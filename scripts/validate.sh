@@ -30,6 +30,7 @@ for script in \
   content/card-types.js \
   content/extractors.js \
   content/transcripts.js \
+  content/tldr.js \
   content/feed-cleanup.js \
   content/transform.js \
   content/observer.js \
@@ -38,6 +39,11 @@ for script in \
 do
   require_file "$ROOT/$script"
 done
+
+require_file "$ROOT/background/service-worker.src.js"
+require_file "$ROOT/background/service-worker.js"
+require_file "$ROOT/popup/api-key.html"
+require_file "$ROOT/popup/api-key.js"
 
 if ! grep -q '"manifest_version"[[:space:]]*:[[:space:]]*3' "$MANIFEST"; then
   fail "manifest_version must be 3"

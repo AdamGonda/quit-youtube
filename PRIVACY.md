@@ -9,8 +9,13 @@ Quit YouTube does not collect, sell, or share your personal data.
 The extension saves one preference on your device using Chrome's `storage` API:
 
 - **Text-only mode on/off** — synced via `chrome.storage.sync` if you use Chrome sync
+- **Google AI API key (optional, for TLDR)** — stored locally in `chrome.storage.local` on your device only; not synced
 
 This preference stays in your browser. We do not operate servers and do not receive this data.
+
+## TLDR summarization
+
+If you use TLDR, the extension sends the open video transcript and your API key directly to Google's Generative Language API (`generativelanguage.googleapis.com`) to generate a summary. We do not proxy or store transcript or summary data on our servers.
 
 ## What the extension accesses
 

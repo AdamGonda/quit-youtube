@@ -1,2 +1,4 @@
 dist/
+background/service-worker.js
+node_modules/
 .DS_Store

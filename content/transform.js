@@ -11,6 +11,9 @@ let escapeListenerAttached = false;
 /** @type {HTMLElement | null} */
 let articleModal = null;
 
+/** @type {{ startMs: number, text: string }[] | null} */
+let openArticleSegments = null;
+
 /** @type {((event: Event) => void) | null} */
 let articleModalScrollHandler = null;
 
@@ -348,6 +351,12 @@ function mountArticleModal(card, metadata) {
   closeBarTitle.textContent = metadata.title;
   closeBarTitle.title = metadata.title;
 
+  const tldrButton = document.createElement("button");
+  tldrButton.type = "button";
+  tldrButton.className = "as-article-tldr";
+  tldrButton.textContent = "TLDR";
+  tldrButton.setAttribute("aria-label", "Summarize transcript");
+
   const closeButton = document.createElement("button");
   closeButton.type = "button";
   closeButton.className = "as-article-close";
@@ -357,6 +366,7 @@ function mountArticleModal(card, metadata) {
     closeArticle(card);
   });
   closeBar.appendChild(closeBarTitle);
+  closeBar.appendChild(tldrButton);
   closeBar.appendChild(closeButton);
   closeBar.appendChild(progressBar);
 
@@ -374,11 +384,20 @@ function mountArticleModal(card, metadata) {
   articleHeader.appendChild(articleTitle);
   articleHeader.appendChild(buildMetaRow(metadata));
 
+  const tldrSummaryEl = document.createElement("div");
+  tldrSummaryEl.className = "as-article-tldr-summary";
+  tldrSummaryEl.hidden = true;
+
   const articleBody = document.createElement("div");
   articleBody.className = "as-article-body";
 
   article.appendChild(articleHeader);
+  article.appendChild(tldrSummaryEl);
   article.appendChild(articleBody);
+
+  tldrButton.addEventListener("click", () => {
+    void handleTldrClick(tldrButton, tldrSummaryEl);
+  });
 
   panel.appendChild(closeBar);
   panel.appendChild(article);
@@ -441,12 +460,111 @@ function refreshArticleModalScroll() {
   articleModalPanel?.dispatchEvent(new Event("scroll"));
 }
 
+/**
+ * @param {HTMLElement} container
+ * @param {string} message
+ * @param {boolean} isError
+ */
+function setTldrSummaryMessage(container, message, isError) {
+  container.hidden = false;
+  container.classList.toggle("as-article-tldr-summary-error", isError);
+  container.replaceChildren();
+
+  const heading = document.createElement("h3");
+  heading.className = "as-article-tldr-summary-title";
+  heading.textContent = "TLDR";
+
+  const body = document.createElement("div");
+  body.className = "as-article-tldr-summary-body";
+  body.textContent = message;
+
+  container.appendChild(heading);
+  container.appendChild(body);
+}
+
+/**
+ * @param {HTMLElement} container
+ * @param {string} summary
+ */
+function renderTldrSummary(container, summary) {
+  container.hidden = false;
+  container.classList.remove("as-article-tldr-summary-error");
+  container.replaceChildren();
+
+  const heading = document.createElement("h3");
+  heading.className = "as-article-tldr-summary-title";
+  heading.textContent = "TLDR";
+
+  const body = document.createElement("div");
+  body.className = "as-article-tldr-summary-body";
+
+  for (const line of summary.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const paragraph = document.createElement("p");
+    paragraph.textContent = trimmed.replace(/^[-*•]\s*/, "");
+    body.appendChild(paragraph);
+  }
+
+  if (!body.childElementCount) {
+    const paragraph = document.createElement("p");
+    paragraph.textContent = summary.trim();
+    body.appendChild(paragraph);
+  }
+
+  container.appendChild(heading);
+  container.appendChild(body);
+}
+
+/**
+ * @param {HTMLButtonElement} tldrButton
+ * @param {HTMLElement} tldrSummaryEl
+ */
+async function handleTldrClick(tldrButton, tldrSummaryEl) {
+  if (!openArticleSegments?.length) {
+    setTldrSummaryMessage(
+      tldrSummaryEl,
+      "No transcript available to summarize.",
+      true
+    );
+    return;
+  }
+
+  tldrButton.disabled = true;
+  tldrButton.textContent = "TLDR…";
+  setTldrSummaryMessage(tldrSummaryEl, "Summarizing…", false);
+
+  try {
+    const transcript = window.AttentionShieldTldr.segmentsToText(openArticleSegments);
+    const summary = await window.AttentionShieldTldr.summarize(transcript);
+    renderTldrSummary(tldrSummaryEl, summary);
+    refreshArticleModalScroll();
+  } catch (error) {
+    if (error instanceof Error && error.code === "missingApiKey") {
+      setTldrSummaryMessage(
+        tldrSummaryEl,
+        "Right-click the Quit YouTube extension icon to set your Google API key.",
+        true
+      );
+      return;
+    }
+
+    const message =
+      error instanceof Error ? error.message : "Failed to summarize transcript.";
+    setTldrSummaryMessage(tldrSummaryEl, message, true);
+  } finally {
+    tldrButton.disabled = false;
+    tldrButton.textContent = "TLDR";
+  }
+}
+
 function unmountArticleModal() {
   if (articleModalScrollHandler && articleModalPanel) {
     articleModalPanel.removeEventListener("scroll", articleModalScrollHandler);
   }
   articleModalScrollHandler = null;
   articleModalPanel = null;
+  openArticleSegments = null;
   articleModal?.remove();
   articleModal = null;
   document.querySelector(".as-article-modal")?.remove();
@@ -515,6 +633,7 @@ async function openArticle(card, metadata) {
     window.AttentionShieldExtractors.extractVideoMetadata(card) || metadata;
 
   openArticleCard = card;
+  openArticleSegments = null;
   const { bodyEl: articleBody } = mountArticleModal(card, displayMetadata);
 
   const titleLink = cardEl.querySelector(".as-title");
@@ -555,6 +674,7 @@ async function openArticle(card, metadata) {
   }
 
   renderArticleBody(articleBody, paragraphs);
+  openArticleSegments = segments;
   refreshArticleModalScroll();
 }
 
