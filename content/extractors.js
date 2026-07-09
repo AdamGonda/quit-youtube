@@ -6,6 +6,7 @@
  * @property {string} [avatarUrl]
  * @property {string[]} [avatarUrls]
  * @property {string} [views]
+ * @property {string} [published]
  * @property {string} [duration]
  * @property {string} href
  * @property {string} videoId
@@ -161,6 +162,37 @@ function findViewsFromMetadataRows(card) {
       if (/views?|watching/i.test(text)) {
         return text;
       }
+    }
+  }
+
+  return "";
+}
+
+/**
+ * @param {Element} card
+ * @returns {string}
+ */
+function findPublishedFromMetadataRows(card) {
+  const rowSelectors = [
+    ".yt-content-metadata-view-model__metadata-row",
+    ".yt-lockup-metadata-view-model .yt-content-metadata-view-model__metadata-row",
+  ];
+
+  for (const rowSelector of rowSelectors) {
+    const rows = card.querySelectorAll(rowSelector);
+    if (!rows.length) continue;
+
+    const lastRow = rows[rows.length - 1];
+    const texts = lastRow.querySelectorAll(
+      ".yt-content-metadata-view-model__metadata-text"
+    );
+
+    for (const el of texts) {
+      const text = el.textContent?.trim() || "";
+      if (!text) continue;
+      if (/views?|watching/i.test(text)) continue;
+      if (isDurationLike(text)) continue;
+      return text;
     }
   }
 
@@ -588,7 +620,7 @@ function findDuration(card, videoId) {
 /**
  * @param {Element} card
  * @param {string} videoId
- * @returns {{ channel: string, channelHref: string, avatarUrl?: string, avatarUrls?: string[], views?: string }}
+ * @returns {{ channel: string, channelHref: string, avatarUrl?: string, avatarUrls?: string[], views?: string, published?: string }}
  */
 function extractChannelPresentation(card, videoId) {
   let channel = findChannelFromMetadataRows(card);
@@ -601,6 +633,7 @@ function extractChannelPresentation(card, videoId) {
 
   const avatarUrls = findAvatarUrls(card, videoId);
   const views = findViewsFromMetadataRows(card) || undefined;
+  const published = findPublishedFromMetadataRows(card) || undefined;
 
   return {
     channel,
@@ -608,6 +641,7 @@ function extractChannelPresentation(card, videoId) {
     avatarUrl: avatarUrls[0],
     avatarUrls: avatarUrls.length > 1 ? avatarUrls : undefined,
     views,
+    published,
   };
 }
 
@@ -624,13 +658,16 @@ function extractLegacy(card) {
 
   const title = findTitle(card);
   const presentation = extractChannelPresentation(card, videoId);
-  let { channel, channelHref, avatarUrl, avatarUrls, views } = presentation;
+  let { channel, channelHref, avatarUrl, avatarUrls, views, published } = presentation;
 
   if (!views) {
     const metadataSpans = card.querySelectorAll("#metadata-line span");
     const spanViews = metadataSpans[0]?.textContent?.trim() || "";
     if (/views?|watching/i.test(spanViews)) {
       views = spanViews;
+    }
+    if (!published) {
+      published = metadataSpans[1]?.textContent?.trim() || undefined;
     }
   }
 
@@ -645,6 +682,7 @@ function extractLegacy(card) {
     avatarUrl,
     avatarUrls,
     views,
+    published,
     duration,
     href: watchLink.getAttribute("href") || "",
     videoId,
@@ -664,7 +702,7 @@ function extractFlatLayout(card) {
 
   const title = findTitle(card);
   const presentation = extractChannelPresentation(card, videoId);
-  let { channel, channelHref, avatarUrl, avatarUrls, views } = presentation;
+  let { channel, channelHref, avatarUrl, avatarUrls, views, published } = presentation;
   const duration = findDuration(card, videoId) || undefined;
 
   if (!isValidTitle(title)) return null;
@@ -688,6 +726,7 @@ function extractFlatLayout(card) {
     avatarUrl,
     avatarUrls,
     views,
+    published,
     duration,
     href: watchLink.getAttribute("href") || "",
     videoId,
@@ -707,7 +746,7 @@ function extractLockup(card) {
 
   const title = findTitle(card);
   const presentation = extractChannelPresentation(card, videoId);
-  let { channel, channelHref, avatarUrl, avatarUrls, views } = presentation;
+  let { channel, channelHref, avatarUrl, avatarUrls, views, published } = presentation;
   const duration = findDuration(card, videoId) || undefined;
 
   if (!views) {
@@ -729,6 +768,7 @@ function extractLockup(card) {
     avatarUrl,
     avatarUrls,
     views,
+    published,
     duration,
     href: watchLink.getAttribute("href") || "",
     videoId,

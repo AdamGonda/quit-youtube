@@ -416,8 +416,7 @@ html.attention-shield-active .as-article-header {
   border-bottom: 1px solid var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.08));
 }
 
-html.attention-shield-active .as-article-close,
-html.attention-shield-active .as-article-tldr {
+html.attention-shield-active .as-article-close {
   flex-shrink: 0;
   padding: 8px 18px;
   border: 2px solid var(--yt-spec-call-to-action, #3ea6ff);
@@ -431,8 +430,7 @@ html.attention-shield-active .as-article-tldr {
   transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 
-html.attention-shield-active .as-article-close:hover,
-html.attention-shield-active .as-article-tldr:hover {
+html.attention-shield-active .as-article-close:hover {
   color: var(--yt-spec-call-to-action, #3ea6ff);
   border-color: var(--yt-spec-call-to-action, #3ea6ff);
   background: rgba(62, 166, 255, 0.12);
@@ -445,52 +443,6 @@ html.attention-shield-active .as-article-title {
   line-height: 1.25;
   letter-spacing: -0.02em;
   color: var(--yt-spec-text-primary, #f1f1f1);
-}
-
-html.attention-shield-active .as-article-tldr-summary {
-  max-width: 720px;
-  margin: 0 auto 24px;
-  padding: 16px 20px;
-  border: 1px solid var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.12));
-  border-radius: 12px;
-  background: var(--yt-spec-badge-chip-background, rgba(255, 255, 255, 0.06));
-}
-
-html.attention-shield-active .as-article-tldr-summary[hidden] {
-  display: none;
-}
-
-html.attention-shield-active .as-article-tldr-summary-error {
-  border-color: rgba(255, 80, 80, 0.35);
-}
-
-html.attention-shield-active .as-article-tldr-summary-title {
-  margin: 0 0 12px;
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--yt-spec-call-to-action, #3ea6ff);
-}
-
-html.attention-shield-active .as-article-tldr-summary-body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  font-size: 16px;
-  line-height: 1.5;
-  color: var(--yt-spec-text-primary, #f1f1f1);
-}
-
-html.attention-shield-active .as-article-tldr-summary-body p {
-  margin: 0 0 0.75em;
-}
-
-html.attention-shield-active .as-article-tldr-summary-body p:last-child {
-  margin-bottom: 0;
-}
-
-html.attention-shield-active .as-article-tldr:disabled {
-  opacity: 0.6;
-  cursor: wait;
 }
 
 html.attention-shield-active .as-article-body {
@@ -509,7 +461,32 @@ html.attention-shield-active .as-article-dialogue {
   color: var(--yt-spec-text-primary, #f1f1f1);
 }
 
+html.attention-shield-active .as-article-body ul {
+  margin: 0 0 1.35em;
+  padding-left: 1.4em;
+  font-size: inherit;
+  line-height: 1.8;
+  color: var(--yt-spec-text-primary, #f1f1f1);
+}
+
+html.attention-shield-active .as-article-body li {
+  margin: 0 0 0.85em;
+}
+
+html.attention-shield-active .as-article-body li:last-child {
+  margin-bottom: 0;
+}
+
+html.attention-shield-active .as-article-body strong {
+  font-weight: 700;
+}
+
+html.attention-shield-active .as-article-body em {
+  font-style: italic;
+}
+
 html.attention-shield-active .as-article-body p:last-child,
+html.attention-shield-active .as-article-body ul:last-child,
 html.attention-shield-active .as-article-turn:last-child .as-article-dialogue {
   margin-bottom: 0;
 }
@@ -538,6 +515,36 @@ html.attention-shield-active .as-article-message {
   font-size: 16px;
   line-height: 1.6;
   color: var(--yt-spec-text-secondary, #aaa);
+}
+
+html.attention-shield-active .as-article-message-loading {
+  display: inline-block;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: linear-gradient(
+    90deg,
+    var(--yt-spec-text-secondary, #888) 0%,
+    var(--yt-spec-text-primary, #f1f1f1) 45%,
+    var(--yt-spec-text-secondary, #888) 90%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: as-tldr-shine 1.8s ease-in-out infinite;
+}
+
+@keyframes as-tldr-shine {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
 }
 
 html.attention-shield-active .as-article-message-error {
@@ -669,15 +676,13 @@ html.attention-shield-active .as-title[aria-disabled="true"] {
     border-bottom-color: rgba(0, 0, 0, 0.08);
   }
 
-  html.attention-shield-active .as-article-close,
-  html.attention-shield-active .as-article-tldr {
+  html.attention-shield-active .as-article-close {
     border-color: #065fd4;
     color: #0f0f0f;
     background: #fff;
   }
 
-  html.attention-shield-active .as-article-close:hover,
-  html.attention-shield-active .as-article-tldr:hover {
+  html.attention-shield-active .as-article-close:hover {
     color: #065fd4;
     border-color: #065fd4;
     background: rgba(6, 95, 212, 0.1);
@@ -689,19 +694,6 @@ html.attention-shield-active .as-title[aria-disabled="true"] {
   }
 
   html.attention-shield-active .as-article-close-bar-title {
-    color: #0f0f0f;
-  }
-
-  html.attention-shield-active .as-article-tldr-summary {
-    background: rgba(6, 95, 212, 0.06);
-    border-color: rgba(0, 0, 0, 0.08);
-  }
-
-  html.attention-shield-active .as-article-tldr-summary-title {
-    color: #065fd4;
-  }
-
-  html.attention-shield-active .as-article-tldr-summary-body {
     color: #0f0f0f;
   }
 
@@ -728,12 +720,21 @@ html.attention-shield-active .as-title[aria-disabled="true"] {
     color: #606060;
   }
 
+  html.attention-shield-active .as-article-message-loading {
+    background: linear-gradient(90deg, #909090 0%, #0f0f0f 45%, #909090 90%);
+    background-size: 200% 100%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+
   html.attention-shield-active .as-article-speaker {
     color: #065fd4;
   }
 
   html.attention-shield-active .as-article-body p,
-  html.attention-shield-active .as-article-dialogue {
+  html.attention-shield-active .as-article-dialogue,
+  html.attention-shield-active .as-article-body ul {
     color: #0f0f0f;
   }
 }

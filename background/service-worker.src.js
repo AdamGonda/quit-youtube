@@ -81,7 +81,21 @@ async function summarizeTranscript(transcript, apiKey) {
   const google = createGoogleGenerativeAI({ apiKey });
   const { text } = await generateText({
     model: google(TLDR_MODEL),
-    prompt: `Summarize this YouTube transcript in 3-5 concise bullet points:\n\n${trimTranscript(transcript)}`,
+    prompt: `Summarize this YouTube transcript in 3-5 markdown bullet points.
+
+Rules:
+- Output ONLY the bullet list — no title, no intro sentence
+- Each line must start with "- "
+- Begin each bullet with a bold topic (2-5 words), then a colon, then the summary
+- Use real topic names from the video (e.g. **SpaceX buys Cursor:**), never the placeholder words "Short label"
+
+Example:
+- **SpaceX buys Cursor:** The host discusses SpaceX reportedly acquiring the AI code editor.
+- **xAI supercomputer:** Musk's Memphis "Colossus" cluster and its power demands.
+
+Transcript:
+
+${trimTranscript(transcript)}`,
   });
   return text.trim();
 }

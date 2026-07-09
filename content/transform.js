@@ -218,6 +218,19 @@ function applyAvatars(avatarLink, metadata) {
 
 /**
  * @param {HTMLElement} bodyEl
+ */
+function setTldrLoadingMessage(bodyEl) {
+  bodyEl.replaceChildren();
+  bodyEl.classList.remove("as-article-body-error");
+
+  const paragraph = document.createElement("p");
+  paragraph.className = "as-article-message as-article-message-loading";
+  paragraph.textContent = "loading TLDR";
+  bodyEl.appendChild(paragraph);
+}
+
+/**
+ * @param {HTMLElement} bodyEl
  * @param {string} message
  * @param {boolean} isError
  */
@@ -351,12 +364,6 @@ function mountArticleModal(card, metadata) {
   closeBarTitle.textContent = metadata.title;
   closeBarTitle.title = metadata.title;
 
-  const tldrButton = document.createElement("button");
-  tldrButton.type = "button";
-  tldrButton.className = "as-article-tldr";
-  tldrButton.textContent = "TLDR";
-  tldrButton.setAttribute("aria-label", "Summarize transcript");
-
   const closeButton = document.createElement("button");
   closeButton.type = "button";
   closeButton.className = "as-article-close";
@@ -366,7 +373,6 @@ function mountArticleModal(card, metadata) {
     closeArticle(card);
   });
   closeBar.appendChild(closeBarTitle);
-  closeBar.appendChild(tldrButton);
   closeBar.appendChild(closeButton);
   closeBar.appendChild(progressBar);
 
@@ -384,20 +390,11 @@ function mountArticleModal(card, metadata) {
   articleHeader.appendChild(articleTitle);
   articleHeader.appendChild(buildMetaRow(metadata));
 
-  const tldrSummaryEl = document.createElement("div");
-  tldrSummaryEl.className = "as-article-tldr-summary";
-  tldrSummaryEl.hidden = true;
-
   const articleBody = document.createElement("div");
   articleBody.className = "as-article-body";
 
   article.appendChild(articleHeader);
-  article.appendChild(tldrSummaryEl);
   article.appendChild(articleBody);
-
-  tldrButton.addEventListener("click", () => {
-    void handleTldrClick(tldrButton, tldrSummaryEl);
-  });
 
   panel.appendChild(closeBar);
   panel.appendChild(article);
@@ -461,88 +458,31 @@ function refreshArticleModalScroll() {
 }
 
 /**
- * @param {HTMLElement} container
- * @param {string} message
- * @param {boolean} isError
- */
-function setTldrSummaryMessage(container, message, isError) {
-  container.hidden = false;
-  container.classList.toggle("as-article-tldr-summary-error", isError);
-  container.replaceChildren();
-
-  const heading = document.createElement("h3");
-  heading.className = "as-article-tldr-summary-title";
-  heading.textContent = "TLDR";
-
-  const body = document.createElement("div");
-  body.className = "as-article-tldr-summary-body";
-  body.textContent = message;
-
-  container.appendChild(heading);
-  container.appendChild(body);
-}
-
-/**
- * @param {HTMLElement} container
+ * @param {HTMLElement} bodyEl
  * @param {string} summary
  */
-function renderTldrSummary(container, summary) {
-  container.hidden = false;
-  container.classList.remove("as-article-tldr-summary-error");
-  container.replaceChildren();
-
-  const heading = document.createElement("h3");
-  heading.className = "as-article-tldr-summary-title";
-  heading.textContent = "TLDR";
-
-  const body = document.createElement("div");
-  body.className = "as-article-tldr-summary-body";
-
-  for (const line of summary.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    const paragraph = document.createElement("p");
-    paragraph.textContent = trimmed.replace(/^[-*•]\s*/, "");
-    body.appendChild(paragraph);
-  }
-
-  if (!body.childElementCount) {
-    const paragraph = document.createElement("p");
-    paragraph.textContent = summary.trim();
-    body.appendChild(paragraph);
-  }
-
-  container.appendChild(heading);
-  container.appendChild(body);
+function renderArticleTldr(bodyEl, summary) {
+  bodyEl.replaceChildren();
+  bodyEl.classList.remove("as-article-body-error");
+  window.AttentionShieldTldr.renderMarkdown(bodyEl, summary);
 }
 
 /**
- * @param {HTMLButtonElement} tldrButton
- * @param {HTMLElement} tldrSummaryEl
+ * @param {HTMLElement} bodyEl
+ * @param {{ startMs: number, text: string }[]} segments
  */
-async function handleTldrClick(tldrButton, tldrSummaryEl) {
-  if (!openArticleSegments?.length) {
-    setTldrSummaryMessage(
-      tldrSummaryEl,
-      "No transcript available to summarize.",
-      true
-    );
-    return;
-  }
-
-  tldrButton.disabled = true;
-  tldrButton.textContent = "TLDR…";
-  setTldrSummaryMessage(tldrSummaryEl, "Summarizing…", false);
+async function loadTldrSummary(bodyEl, segments) {
+  setTldrLoadingMessage(bodyEl);
 
   try {
-    const transcript = window.AttentionShieldTldr.segmentsToText(openArticleSegments);
+    const transcript = window.AttentionShieldTldr.segmentsToText(segments);
     const summary = await window.AttentionShieldTldr.summarize(transcript);
-    renderTldrSummary(tldrSummaryEl, summary);
+    renderArticleTldr(bodyEl, summary);
     refreshArticleModalScroll();
   } catch (error) {
     if (error instanceof Error && error.code === "missingApiKey") {
-      setTldrSummaryMessage(
-        tldrSummaryEl,
+      setArticleBodyMessage(
+        bodyEl,
         "Right-click the Quit YouTube extension icon to set your Google API key.",
         true
       );
@@ -551,10 +491,7 @@ async function handleTldrClick(tldrButton, tldrSummaryEl) {
 
     const message =
       error instanceof Error ? error.message : "Failed to summarize transcript.";
-    setTldrSummaryMessage(tldrSummaryEl, message, true);
-  } finally {
-    tldrButton.disabled = false;
-    tldrButton.textContent = "TLDR";
+    setArticleBodyMessage(bodyEl, message, true);
   }
 }
 
@@ -642,7 +579,7 @@ async function openArticle(card, metadata) {
     titleLink.classList.add("as-title-loading");
   }
 
-  setArticleBodyMessage(articleBody, "Loading transcript…", false);
+  setTldrLoadingMessage(articleBody);
 
   const segments = await window.AttentionShieldTranscripts.fetchTranscript(
     metadata.videoId
@@ -663,19 +600,8 @@ async function openArticle(card, metadata) {
     return;
   }
 
-  const paragraphs = window.AttentionShieldTranscripts.formatArticleBody(
-    segments
-  );
-
-  if (!paragraphs.length) {
-    setArticleBodyMessage(articleBody, "No transcript available", true);
-    refreshArticleModalScroll();
-    return;
-  }
-
-  renderArticleBody(articleBody, paragraphs);
   openArticleSegments = segments;
-  refreshArticleModalScroll();
+  void loadTldrSummary(articleBody, segments);
 }
 
 /**
@@ -738,7 +664,7 @@ function buildMetaRow(metadata) {
   channelSpan.textContent = metadata.channel;
   metaCol.appendChild(channelSpan);
 
-  if (metadata.views || metadata.duration) {
+  if (metadata.views || metadata.published) {
     const statsEl = document.createElement("div");
     statsEl.className = "as-meta-stats";
 
@@ -749,15 +675,15 @@ function buildMetaRow(metadata) {
       statsEl.appendChild(viewsSpan);
     }
 
-    if (metadata.views && metadata.duration) {
+    if (metadata.views && metadata.published) {
       statsEl.appendChild(createSeparator());
     }
 
-    if (metadata.duration) {
-      const durationSpan = document.createElement("span");
-      durationSpan.className = "as-duration-prominent";
-      durationSpan.textContent = metadata.duration;
-      statsEl.appendChild(durationSpan);
+    if (metadata.published) {
+      const publishedSpan = document.createElement("span");
+      publishedSpan.className = "as-published-text";
+      publishedSpan.textContent = metadata.published;
+      statsEl.appendChild(publishedSpan);
     }
 
     metaCol.appendChild(statsEl);
@@ -936,10 +862,6 @@ function injectCard(card, metadata) {
   card.appendChild(cardEl);
 
   if (contentRoot !== card) {
-    if (!metadata.duration) {
-      scheduleDurationUpgrade(card, cardEl, contentRoot, metadata.videoId);
-    }
-
     if (!metadata.avatarUrl && !metadata.avatarUrls?.length) {
       scheduleAvatarUpgrade(
         card,

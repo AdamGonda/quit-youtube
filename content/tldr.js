@@ -1,4 +1,98 @@
 /**
+ * @param {HTMLElement} parent
+ * @param {string} text
+ */
+function appendInlineMarkdown(parent, text) {
+  if (!text) return;
+
+  const pattern = /\*\*(.+?)\*\*|\*(.+?)\*/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parent.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+    }
+
+    if (match[1] !== undefined) {
+      const strong = document.createElement("strong");
+      strong.textContent = match[1];
+      parent.appendChild(strong);
+    } else if (match[2] !== undefined) {
+      const em = document.createElement("em");
+      em.textContent = match[2];
+      parent.appendChild(em);
+    }
+
+    lastIndex = pattern.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    parent.appendChild(document.createTextNode(text.slice(lastIndex)));
+  }
+}
+
+/**
+ * @param {string} line
+ * @returns {string | null}
+ */
+function extractListItem(line) {
+  const trimmed = line.trim();
+  const match = trimmed.match(/^(?:[-*•]|\d+\.)\s+(.*)$/);
+  return match ? match[1] : null;
+}
+
+/**
+ * @param {string} line
+ * @returns {boolean}
+ */
+function isIntroLine(line) {
+  return /^(here (is|are)|summary|tldr|below)/i.test(line.trim());
+}
+
+/**
+ * @param {HTMLElement} parent
+ * @param {string} markdown
+ */
+function renderMarkdown(parent, markdown) {
+  parent.replaceChildren();
+
+  const lines = markdown.split("\n");
+  /** @type {HTMLUListElement | null} */
+  let currentList = null;
+
+  const flushList = () => {
+    currentList = null;
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || isIntroLine(trimmed)) {
+      flushList();
+      continue;
+    }
+
+    const listContent = extractListItem(trimmed);
+    if (listContent !== null) {
+      if (!currentList) {
+        currentList = document.createElement("ul");
+        parent.appendChild(currentList);
+      }
+
+      const listItem = document.createElement("li");
+      appendInlineMarkdown(listItem, listContent);
+      currentList.appendChild(listItem);
+      continue;
+    }
+
+    flushList();
+    const paragraph = document.createElement("p");
+    appendInlineMarkdown(paragraph, trimmed);
+    parent.appendChild(paragraph);
+  }
+}
+
+/**
  * @typedef {{ startMs: number, text: string }} TranscriptSegment
  */
 
@@ -88,4 +182,5 @@ window.AttentionShieldTldr = {
   hasApiKey,
   summarize,
   segmentsToText,
+  renderMarkdown,
 };
