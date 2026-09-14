@@ -1,66 +1,41 @@
 # Quit YouTube
 
-**Take back your attention.** YouTube without thumbnails—read any video's transcript like an article.
+A Chrome extension that turns YouTube into a text-first reading surface.
 
-## Features
+Thumbnails, autoplay, and Shorts are built to pull you in. This extension hides them. You see titles, channels, views, and duration. Click a title to read the transcript like an article — no video playing.
 
-- Hides video thumbnails on homepage, search, subscriptions, and channel video tabs
-- Shows channel profile picture, title, creator, views, and duration
-- Click a title to read the video transcript as an article (no autoplay)
+## What it does
+
+- Replaces thumbnails with compact text cards on Home, Search, Subscriptions, and channel video tabs
+- Opens the video transcript inline when you click a title (no autoplay)
+- Optionally summarizes an open transcript (TLDR) if you add a Google AI API key
 - Hides Shorts shelves
-- Handles infinite scroll and YouTube SPA navigation
-- Toggle on/off via the extension popup
+- Follows infinite scroll and YouTube’s in-page navigation
+- Turns on and off from the toolbar popup
 
-## Install (Load Unpacked)
+## Install
 
-1. Open Chrome and go to `chrome://extensions`
-2. Enable **Developer mode** (top right)
-3. Click **Load unpacked**
-4. Select this folder (`quit-youtube`)
-5. Open [youtube.com](https://www.youtube.com) — the feed should transform automatically
+1. Open `chrome://extensions`
+2. Turn on **Developer mode**
+3. Click **Load unpacked** and select this folder
+4. Open [youtube.com](https://www.youtube.com)
 
-## Usage
+## Use
 
-- Click the Quit YouTube icon in the toolbar to toggle text-only mode on or off
-- Click a **title** to open the transcript as a readable article (stays on the feed)
-- Click **Close** or press Escape to return to the compact card
-- Click the **channel avatar** to open the channel page
+- Toolbar icon → toggle text-only mode
+- Click a **title** → read the transcript; **Close** or Escape returns to the card
+- Click the **channel avatar** → open the channel
+- Right-click the extension icon → set a Google AI API key if you want TLDR
 
-## Project Structure
+Your on/off preference is stored in Chrome. The optional API key stays on this device. Nothing is sent to us. Transcripts go to Google only if you use TLDR. See [PRIVACY.md](./PRIVACY.md).
 
-```
-quit-youtube/
-├── manifest.json
-├── popup/           # Enable/disable toggle
-├── content/         # Content scripts (extraction, transform, observer)
-├── styles/          # Text-only card layout CSS
-└── icons/           # icon.svg source + 16/48/128 PNGs
-```
+## Develop
 
-## Development
-
-After editing files, reload the extension on `chrome://extensions` and refresh YouTube.
-
-YouTube's DOM changes frequently. If cards stop transforming, update selectors in `content/extractors.js`.
+YouTube’s DOM changes often. If cards stop transforming, update selectors in `content/extractors.js`. Reload the extension, then refresh YouTube.
 
 ```bash
-npm run validate   # check manifest + required files
-npm run package    # build dist/quit-youtube-vX.Y.Z.zip for the Chrome Web Store
+npm run validate   # manifest + required files
+npm run package    # dist/quit-youtube-vX.Y.Z.zip
 ```
 
-## Release to Chrome Web Store
-
-See **[RELEASE.md](./RELEASE.md)** for the full checklist. Store listing copy is in **[STORE_LISTING.md](./STORE_LISTING.md)**. Privacy policy: **[PRIVACY.md](./PRIVACY.md)**.
-
-Quick path:
-
-1. `npm run version:patch` (or minor/major)
-2. `npm run package`
-3. Upload `dist/quit-youtube-v*.zip` at the [developer dashboard](https://chrome.google.com/webstore/devconsole)
-4. `git tag vX.Y.Z && git push --tags` — GitHub Actions attaches the ZIP to the release
-
-## Permissions
-
-- `storage` — saves the on/off toggle preference
-
-No data is collected or sent anywhere.
+Chrome Web Store steps: [RELEASE.md](./RELEASE.md). Listing copy: [STORE_LISTING.md](./STORE_LISTING.md).
