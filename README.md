@@ -2,13 +2,12 @@
 
 A Chrome extension that turns YouTube into a text-first reading surface.
 
-Thumbnails, autoplay, and Shorts are built to pull you in. This extension hides them. You see titles, channels, views, and duration. Click a title to read the transcript like an article — no video playing.
+Thumbnails, autoplay, and Shorts are built to pull you in. This extension hides them. You see titles, channels, views, and duration. Click a title to get a TLDR of the video — no player, no transcript dump.
 
 ## What it does
 
 - Replaces thumbnails with compact text cards on Home, Search, Subscriptions, and channel video tabs
-- Opens the video transcript inline when you click a title (no autoplay)
-- Optionally summarizes an open transcript (TLDR) if you add a Google AI API key
+- Opens a TLDR of the video when you click a title (fetches the transcript in the background, never plays the video)
 - Hides Shorts shelves
 - Follows infinite scroll and YouTube’s in-page navigation
 - Turns on and off from the toolbar popup
@@ -23,11 +22,11 @@ Thumbnails, autoplay, and Shorts are built to pull you in. This extension hides 
 ## Use
 
 - Toolbar icon → toggle text-only mode
-- Click a **title** → read the transcript; **Close** or Escape returns to the card
+- Right-click the extension icon → set a Google AI API key (needed for TLDRs)
+- Click a **title** → TLDR of that video; **Close** or Escape returns to the card
 - Click the **channel avatar** → open the channel
-- Right-click the extension icon → set a Google AI API key if you want TLDR
 
-Your on/off preference is stored in Chrome. The optional API key stays on this device. Nothing is sent to us. Transcripts go to Google only if you use TLDR. See [PRIVACY.md](./PRIVACY.md).
+Your on/off preference is stored in Chrome. The API key stays on this device. Nothing is sent to us. Opening a title sends that video’s transcript to Google to generate the summary. See [PRIVACY.md](./PRIVACY.md).
 
 ## Develop
 
